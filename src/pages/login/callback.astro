@@ -1,0 +1,56 @@
+---
+import { getRedis } from '../../lib/redis.ts'
+import { verifyMagicToken, createSession } from '../../lib/auth.ts'
+
+const token = Astro.url.searchParams.get('token') ?? ''
+let errorMessage = ''
+
+if (token) {
+  const env = Astro.locals.runtime?.env as Record<string, string> | undefined
+  const redis = getRedis(
+    env?.UPSTASH_REDIS_REST_URL ?? import.meta.env.UPSTASH_REDIS_REST_URL,
+    env?.UPSTASH_REDIS_REST_TOKEN ?? import.meta.env.UPSTASH_REDIS_REST_TOKEN,
+  )
+
+  const apiKeyId = await verifyMagicToken(redis, token)
+  if (apiKeyId) {
+    const sessionId = await createSession(redis, apiKeyId)
+    Astro.cookies.set('session', sessionId, {
+      path: '/',
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60,
+    })
+    return Astro.redirect('/dashboard')
+  } else {
+    errorMessage = 'This login link is invalid or has expired. Please request a new one.'
+  }
+} else {
+  errorMessage = 'No login token provided.'
+}
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign in — TaxVett</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #f8fafc; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 40px; width: 100%; max-width: 400px; text-align: center; }
+    .logo { font-size: 20px; font-weight: 700; color: #0ea5e9; margin-bottom: 24px; }
+    p { color: #64748b; font-size: 14px; margin-bottom: 20px; }
+    .error { color: #ef4444; font-size: 14px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 12px; margin-bottom: 20px; }
+    a { color: #0ea5e9; text-decoration: none; font-weight: 500; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">TaxVett</div>
+    <div class="error">{errorMessage}</div>
+    <a href="/login">← Request a new login link</a>
+  </div>
+</body>
+</html>

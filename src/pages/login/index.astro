@@ -1,0 +1,94 @@
+---
+import { getDb } from '../../lib/db.ts'
+import { getRedis } from '../../lib/redis.ts'
+import { generateMagicToken, checkMagicLinkRateLimit } from '../../lib/auth.ts'
+import { sendMagicLinkEmail } from '../../lib/email.ts'
+import { eq } from 'drizzle-orm'
+import { apiKeys } from '../../db/schema.ts'
+
+let error = ''
+let success = false
+
+if (Astro.request.method === 'POST') {
+  const data = await Astro.request.formData()
+  const email = String(data.get('email') ?? '').trim().toLowerCase()
+
+  if (!email || !email.includes('@')) {
+    error = 'Please enter a valid email address.'
+  } else {
+    const env = Astro.locals.runtime?.env as Record<string, string> | undefined
+    const db = getDb(env?.DATABASE_URL ?? import.meta.env.DATABASE_URL)
+    const redis = getRedis(
+      env?.UPSTASH_REDIS_REST_URL ?? import.meta.env.UPSTASH_REDIS_REST_URL,
+      env?.UPSTASH_REDIS_REST_TOKEN ?? import.meta.env.UPSTASH_REDIS_REST_TOKEN,
+    )
+
+    const allowed = await checkMagicLinkRateLimit(redis, email)
+    if (!allowed) {
+      error = 'Too many login attempts. Please wait a few minutes and try again.'
+    } else {
+      const key = await db.query.apiKeys.findFirst({
+        where: eq(apiKeys.email, email),
+        columns: { id: true },
+      })
+
+      // Don't reveal whether the email exists — always show success
+      if (key) {
+        const token = await generateMagicToken(redis, key.id)
+        const magicLink = `${Astro.url.origin}/login/callback?token=${token}`
+        await sendMagicLinkEmail({
+          to: email,
+          magicLink,
+          resendApiKey: env?.RESEND_API_KEY ?? import.meta.env.RESEND_API_KEY,
+        })
+      }
+
+      success = true
+    }
+  }
+}
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign in — TaxVett</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f8fafc; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 40px; width: 100%; max-width: 400px; }
+    .logo { font-size: 20px; font-weight: 700; color: #0ea5e9; margin-bottom: 24px; }
+    h1 { font-size: 22px; font-weight: 600; margin-bottom: 8px; }
+    p { color: #64748b; font-size: 14px; margin-bottom: 24px; }
+    label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; }
+    input[type="email"] { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 15px; outline: none; }
+    input[type="email"]:focus { border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14,165,233,.15); }
+    button { width: 100%; margin-top: 16px; padding: 11px; background: #0ea5e9; color: #fff; border: none; border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer; }
+    button:hover { background: #0284c7; }
+    .error { color: #ef4444; font-size: 13px; margin-top: 10px; }
+    .success { color: #16a34a; font-size: 14px; margin-top: 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 12px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">TaxVett</div>
+    <h1>Sign in to your dashboard</h1>
+    <p>Enter the email you used to sign up. We'll send you a login link.</p>
+
+    {success ? (
+      <div class="success">
+        Check your inbox — we sent a login link to that address (if it's in our system).
+      </div>
+    ) : (
+      <form method="POST">
+        <label for="email">Email address</label>
+        <input type="email" id="email" name="email" placeholder="you@company.com" required autofocus />
+        {error && <p class="error">{error}</p>}
+        <button type="submit">Send login link</button>
+      </form>
+    )}
+  </div>
+</body>
+</html>

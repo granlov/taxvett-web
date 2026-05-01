@@ -1,0 +1,287 @@
+---
+import { getDb } from '../../lib/db.ts'
+import { hashApiKey, generateApiKey } from '../../lib/crypto.ts'
+import { eq, desc, sql } from 'drizzle-orm'
+import { usageLog, apiKeys, webhooks } from '../../db/schema.ts'
+
+const env = Astro.locals.runtime?.env as Record<string, string> | undefined
+const getEnv = (key: string) => env?.[key] ?? import.meta.env[key as keyof ImportMetaEnv]
+
+const db = getDb(getEnv('DATABASE_URL'))
+const { apiKeyId, email, plan } = Astro.locals
+
+// Handle key regeneration
+let newKeyRaw: string | null = null
+if (Astro.request.method === 'POST') {
+  const data = await Astro.request.formData()
+  if (data.get('action') === 'regenerate-key') {
+    const rawKey = await generateApiKey()
+    const newHash = await hashApiKey(rawKey, getEnv('API_KEY_SALT'))
+    await db.update(apiKeys)
+      .set({ keyHash: newHash })
+      .where(eq(apiKeys.id, apiKeyId))
+    newKeyRaw = rawKey
+  } else if (data.get('action') === 'logout') {
+    const { getRedis } = await import('../../lib/redis.ts')
+    const { deleteSession } = await import('../../lib/auth.ts')
+    const sessionId = Astro.cookies.get('session')?.value
+    if (sessionId) {
+      const redis = getRedis(getEnv('UPSTASH_REDIS_REST_URL'), getEnv('UPSTASH_REDIS_REST_TOKEN'))
+      await deleteSession(redis, sessionId)
+    }
+    Astro.cookies.delete('session', { path: '/' })
+    return Astro.redirect('/login')
+  }
+}
+
+// Fetch stats
+const sevenDaysAgo = sql`now() - interval '7 days'`
+const [totalResult, byCountry, byDay, keyRow, webhookList] = await Promise.all([
+  db.select({ count: sql<number>`count(*)::int` }).from(usageLog).where(eq(usageLog.apiKeyId, apiKeyId)),
+  db
+    .select({ country: usageLog.country, count: sql<number>`count(*)::int` })
+    .from(usageLog)
+    .where(eq(usageLog.apiKeyId, apiKeyId))
+    .groupBy(usageLog.country)
+    .orderBy(desc(sql`count(*)`))
+    .limit(5),
+  db
+    .select({
+      date: sql<string>`date_trunc('day', ${usageLog.createdAt})::date::text`,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(usageLog)
+    .where(sql`${usageLog.apiKeyId} = ${apiKeyId} AND ${usageLog.createdAt} >= ${sevenDaysAgo}`)
+    .groupBy(sql`date_trunc('day', ${usageLog.createdAt})`)
+    .orderBy(sql`date_trunc('day', ${usageLog.createdAt})`),
+  db.query.apiKeys.findFirst({ where: eq(apiKeys.id, apiKeyId), columns: { keyHash: true, createdAt: true } }),
+  db.select().from(webhooks).where(eq(webhooks.apiKeyId, apiKeyId)).orderBy(desc(webhooks.createdAt)),
+])
+
+const totalRequests = totalResult[0]?.count ?? 0
+const planLimit = plan === 'pro' ? 1000 : 100
+const quotaPct = Math.min(100, Math.round((totalRequests / planLimit) * 100))
+
+// Build 7-day chart data (fill missing days with 0)
+const today = new Date()
+const chartDays: { date: string; count: number }[] = []
+for (let i = 6; i >= 0; i--) {
+  const d = new Date(today)
+  d.setDate(d.getDate() - i)
+  const dateStr = d.toISOString().slice(0, 10)
+  const found = byDay.find((r) => r.date === dateStr)
+  chartDays.push({ date: dateStr, count: found?.count ?? 0 })
+}
+const maxCount = Math.max(...chartDays.map((d) => d.count), 1)
+
+const countryFlags: Record<string, string> = {
+  SE: '🇸🇪', DE: '🇩🇪', GB: '🇬🇧', FR: '🇫🇷', NL: '🇳🇱', AU: '🇦🇺',
+  NO: '🇳🇴', SG: '🇸🇬', FI: '🇫🇮', DK: '🇩🇰', PL: '🇵🇱', IT: '🇮🇹',
+  ES: '🇪🇸', BE: '🇧🇪', AT: '🇦🇹', IE: '🇮🇪',
+}
+
+const keyPrefix = keyRow?.keyHash?.slice(0, 8) ?? '????????'
+const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateString('en-SE') : '—'
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — TaxVett</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f8fafc; color: #1e293b; min-height: 100vh; }
+    nav { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 56px; }
+    .nav-logo { font-size: 18px; font-weight: 700; color: #0ea5e9; }
+    .nav-right { display: flex; gap: 16px; align-items: center; font-size: 14px; color: #64748b; }
+    nav a { color: #0ea5e9; text-decoration: none; font-size: 14px; font-weight: 500; }
+    main { max-width: 960px; margin: 0 auto; padding: 32px 24px; }
+    h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; }
+    .card-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #94a3b8; margin-bottom: 8px; }
+    .card-value { font-size: 28px; font-weight: 700; color: #0f172a; }
+    .card-sub { font-size: 13px; color: #64748b; margin-top: 4px; }
+    .quota-bar { height: 8px; background: #e2e8f0; border-radius: 4px; margin-top: 12px; overflow: hidden; }
+    .quota-fill { height: 100%; border-radius: 4px; background: #0ea5e9; transition: width .4s; }
+    .quota-fill.warning { background: #f59e0b; }
+    .quota-fill.danger { background: #ef4444; }
+    .section { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 24px; margin-bottom: 24px; }
+    /* Bar chart */
+    .chart { display: flex; align-items: flex-end; gap: 6px; height: 120px; margin-top: 8px; }
+    .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+    .bar { width: 100%; background: #bae6fd; border-radius: 4px 4px 0 0; min-height: 2px; transition: height .3s; }
+    .bar-label { font-size: 10px; color: #94a3b8; white-space: nowrap; }
+    .bar-count { font-size: 11px; color: #475569; font-weight: 600; }
+    /* Countries */
+    .country-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
+    .country-row:last-child { border-bottom: none; }
+    .country-name { flex: 1; font-size: 14px; }
+    .country-bar-wrap { flex: 2; height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
+    .country-bar { height: 100%; background: #7dd3fc; border-radius: 4px; }
+    .country-count { font-size: 13px; font-weight: 600; color: #475569; width: 36px; text-align: right; }
+    /* API key */
+    .key-box { display: flex; align-items: center; gap: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 14px; font-family: monospace; font-size: 14px; }
+    .key-masked { flex: 1; color: #475569; }
+    .new-key-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 14px; margin-bottom: 16px; }
+    .new-key-box strong { display: block; font-size: 13px; margin-bottom: 8px; color: #15803d; }
+    .new-key-box code { font-family: monospace; font-size: 13px; word-break: break-all; color: #0f172a; }
+    .btn { padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; }
+    .btn-primary { background: #0ea5e9; color: #fff; }
+    .btn-primary:hover { background: #0284c7; }
+    .btn-danger { background: #fff; color: #ef4444; border: 1px solid #fca5a5; }
+    .btn-danger:hover { background: #fef2f2; }
+    .btn-sm { padding: 6px 12px; font-size: 13px; }
+    /* Webhooks */
+    .webhook-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+    .webhook-row:last-child { border-bottom: none; }
+    .webhook-url { flex: 1; font-size: 13px; font-family: monospace; color: #334155; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
+    .badge-active { background: #dcfce7; color: #15803d; }
+    .badge-inactive { background: #f1f5f9; color: #94a3b8; }
+    .info-grid { display: grid; grid-template-columns: 140px 1fr; gap: 10px 0; font-size: 14px; }
+    .info-label { color: #94a3b8; font-weight: 500; }
+    .plan-badge { font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 20px; text-transform: uppercase; background: #e0f2fe; color: #0369a1; }
+    .plan-badge.pro { background: #fef9c3; color: #854d0e; }
+    form.inline { display: inline; }
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    input[type="url"] { flex: 1; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+    .add-form { display: flex; gap: 8px; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <nav>
+    <span class="nav-logo">TaxVett</span>
+    <div class="nav-right">
+      <span>{email}</span>
+      <form method="POST" class="inline">
+        <input type="hidden" name="action" value="logout" />
+        <button class="btn btn-sm" style="background:none;border:1px solid #e2e8f0;cursor:pointer;font-size:13px;color:#64748b">Sign out</button>
+      </form>
+    </div>
+  </nav>
+
+  <main>
+    <!-- Quota cards -->
+    <div class="grid">
+      <div class="card">
+        <div class="card-title">Total requests</div>
+        <div class="card-value">{totalRequests.toLocaleString()}</div>
+        <div class="card-sub">all time</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Plan</div>
+        <div class="card-value" style="font-size:20px;margin-top:4px">
+          <span class={`plan-badge ${plan === 'pro' ? 'pro' : ''}`}>{plan}</span>
+        </div>
+        <div class="card-sub">{plan === 'pro' ? '1 000 req/min rate limit' : '100 req/min rate limit'}</div>
+      </div>
+    </div>
+
+    <!-- Requests per day chart -->
+    <div class="section">
+      <div class="section-header">
+        <h2>Requests per day — last 7 days</h2>
+      </div>
+      <div class="chart">
+        {chartDays.map((day) => (
+          <div class="bar-col">
+            <div class="bar-count">{day.count > 0 ? day.count : ''}</div>
+            <div class="bar" style={`height:${Math.round((day.count / maxCount) * 100)}%`}></div>
+            <div class="bar-label">{day.date.slice(5)}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <!-- Top countries -->
+    {byCountry.length > 0 && (
+      <div class="section">
+        <h2>Top countries validated</h2>
+        {byCountry.map((row) => {
+          const flag = countryFlags[row.country ?? ''] ?? '🌍'
+          const pct = totalRequests > 0 ? Math.round(((row.count ?? 0) / totalRequests) * 100) : 0
+          return (
+            <div class="country-row">
+              <span style="font-size:20px">{flag}</span>
+              <span class="country-name">{row.country ?? 'Unknown'}</span>
+              <div class="country-bar-wrap">
+                <div class="country-bar" style={`width:${pct}%`}></div>
+              </div>
+              <span class="country-count">{row.count}</span>
+            </div>
+          )
+        })}
+      </div>
+    )}
+
+    <!-- API key -->
+    <div class="section">
+      <div class="section-header">
+        <h2>API key</h2>
+      </div>
+
+      {newKeyRaw && (
+        <div class="new-key-box">
+          <strong>⚠ Copy your new API key now — it won't be shown again.</strong>
+          <code>{newKeyRaw}</code>
+        </div>
+      )}
+
+      <div class="key-box">
+        <span class="key-masked">tv_{'•'.repeat(20)}{keyPrefix}…</span>
+        <form method="POST" onsubmit="return confirm('Regenerate API key? Your current key will stop working immediately.')">
+          <input type="hidden" name="action" value="regenerate-key" />
+          <button type="submit" class="btn btn-danger btn-sm">Regenerate</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Webhooks -->
+    <div class="section">
+      <div class="section-header">
+        <h2>Webhooks</h2>
+      </div>
+
+      {webhookList.length === 0 ? (
+        <p style="color:#94a3b8;font-size:14px">No webhooks configured yet.</p>
+      ) : (
+        <div>
+          {webhookList.map((wh) => (
+            <div class="webhook-row">
+              <span class={`badge ${wh.isActive ? 'badge-active' : 'badge-inactive'}`}>
+                {wh.isActive ? 'Active' : 'Inactive'}
+              </span>
+              <span class="webhook-url">{wh.url}</span>
+              <form method="POST" action="/api/webhooks/delete" class="inline">
+                <input type="hidden" name="id" value={wh.id} />
+                <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+              </form>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <form class="add-form" method="POST" action="/api/webhooks/create">
+        <input type="url" name="url" placeholder="https://your-server.com/webhook" required />
+        <button type="submit" class="btn btn-primary">Add webhook</button>
+      </form>
+    </div>
+
+    <!-- Account info -->
+    <div class="section">
+      <h2 style="margin-bottom:16px">Account</h2>
+      <div class="info-grid">
+        <span class="info-label">Email</span>
+        <span>{email ?? '—'}</span>
+        <span class="info-label">Plan</span>
+        <span><span class={`plan-badge ${plan === 'pro' ? 'pro' : ''}`}>{plan}</span></span>
+        <span class="info-label">API key created</span>
+        <span>{createdAt}</span>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
