@@ -1,15 +1,15 @@
 ---
 import { getRedis } from '../../lib/redis.ts'
 import { verifyMagicToken, createSession } from '../../lib/auth.ts'
+import { env } from 'cloudflare:workers'
 
 const token = Astro.url.searchParams.get('token') ?? ''
 let errorMessage = ''
 
 if (token) {
-  const env = Astro.locals.runtime?.env as Record<string, string> | undefined
   const redis = getRedis(
-    env?.UPSTASH_REDIS_REST_URL ?? import.meta.env.UPSTASH_REDIS_REST_URL,
-    env?.UPSTASH_REDIS_REST_TOKEN ?? import.meta.env.UPSTASH_REDIS_REST_TOKEN,
+    env.UPSTASH_REDIS_REST_URL,
+    env.UPSTASH_REDIS_REST_TOKEN,
   )
 
   const apiKeyId = await verifyMagicToken(redis, token)

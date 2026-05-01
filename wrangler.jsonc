@@ -2,16 +2,14 @@
 	"compatibility_date": "2026-05-01",
 	"compatibility_flags": ["global_fetch_strictly_public"],
 	"name": "taxvett-web",
-	"pages_build_output_dir": "./dist",
-	"main": "@astrojs/cloudflare/entrypoints/server",
 	"assets": {
-		"directory": "./dist",
+		"directory": "dist/client",
 		"binding": "ASSETS"
 	},
 	"observability": {
 		"enabled": true
 	},
 	"vars": {
-		"PUBLIC_API_BASE": "https://api.taxvett.com"
+		"PUBLIC_API_BASE": "https://taxvett-api.granlov.workers.dev"
 	}
 }

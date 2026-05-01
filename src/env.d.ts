@@ -1,17 +1,24 @@
 /// <reference types="astro/client" />
 
 interface ImportMetaEnv {
-  readonly DATABASE_URL: string
-  readonly UPSTASH_REDIS_REST_URL: string
-  readonly UPSTASH_REDIS_REST_TOKEN: string
-  readonly RESEND_API_KEY: string
-  readonly API_KEY_SALT: string
   readonly PUBLIC_API_BASE: string
-  readonly DEMO_API_KEY: string
 }
 
 interface ImportMeta {
   readonly env: ImportMetaEnv
+}
+
+declare module 'cloudflare:workers' {
+  const env: {
+    DATABASE_URL: string
+    API_KEY_SALT: string
+    DEMO_API_KEY: string
+    UPSTASH_REDIS_REST_URL: string
+    UPSTASH_REDIS_REST_TOKEN: string
+    RESEND_API_KEY: string
+    PUBLIC_API_BASE: string
+  }
+  export { env }
 }
 
 declare namespace App {
@@ -19,8 +26,5 @@ declare namespace App {
     apiKeyId: number
     email: string | null
     plan: string
-    runtime?: {
-      env: Record<string, string>
-    }
   }
 }

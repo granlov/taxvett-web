@@ -3,11 +3,9 @@ import { getDb } from '../../lib/db.ts'
 import { hashApiKey, generateApiKey } from '../../lib/crypto.ts'
 import { eq, desc, sql } from 'drizzle-orm'
 import { usageLog, apiKeys, webhooks } from '../../db/schema.ts'
+import { env } from 'cloudflare:workers'
 
-const env = Astro.locals.runtime?.env as Record<string, string> | undefined
-const getEnv = (key: string) => env?.[key] ?? import.meta.env[key as keyof ImportMetaEnv]
-
-const db = getDb(getEnv('DATABASE_URL'))
+const db = getDb(env.DATABASE_URL)
 const { apiKeyId, email, plan } = Astro.locals
 
 // Handle key regeneration
@@ -16,7 +14,7 @@ if (Astro.request.method === 'POST') {
   const data = await Astro.request.formData()
   if (data.get('action') === 'regenerate-key') {
     const rawKey = await generateApiKey()
-    const newHash = await hashApiKey(rawKey, getEnv('API_KEY_SALT'))
+    const newHash = await hashApiKey(rawKey, env.API_KEY_SALT)
     await db.update(apiKeys)
       .set({ keyHash: newHash })
       .where(eq(apiKeys.id, apiKeyId))
@@ -26,7 +24,7 @@ if (Astro.request.method === 'POST') {
     const { deleteSession } = await import('../../lib/auth.ts')
     const sessionId = Astro.cookies.get('session')?.value
     if (sessionId) {
-      const redis = getRedis(getEnv('UPSTASH_REDIS_REST_URL'), getEnv('UPSTASH_REDIS_REST_TOKEN'))
+      const redis = getRedis(env.UPSTASH_REDIS_REST_URL, env.UPSTASH_REDIS_REST_TOKEN)
       await deleteSession(redis, sessionId)
     }
     Astro.cookies.delete('session', { path: '/' })

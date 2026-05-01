@@ -5,6 +5,7 @@ import { generateMagicToken, checkMagicLinkRateLimit } from '../../lib/auth.ts'
 import { sendMagicLinkEmail } from '../../lib/email.ts'
 import { eq } from 'drizzle-orm'
 import { apiKeys } from '../../db/schema.ts'
+import { env } from 'cloudflare:workers'
 
 let error = ''
 let success = false
@@ -16,11 +17,10 @@ if (Astro.request.method === 'POST') {
   if (!email || !email.includes('@')) {
     error = 'Please enter a valid email address.'
   } else {
-    const env = Astro.locals.runtime?.env as Record<string, string> | undefined
-    const db = getDb(env?.DATABASE_URL ?? import.meta.env.DATABASE_URL)
+    const db = getDb(env.DATABASE_URL)
     const redis = getRedis(
-      env?.UPSTASH_REDIS_REST_URL ?? import.meta.env.UPSTASH_REDIS_REST_URL,
-      env?.UPSTASH_REDIS_REST_TOKEN ?? import.meta.env.UPSTASH_REDIS_REST_TOKEN,
+      env.UPSTASH_REDIS_REST_URL,
+      env.UPSTASH_REDIS_REST_TOKEN,
     )
 
     const allowed = await checkMagicLinkRateLimit(redis, email)
@@ -39,7 +39,7 @@ if (Astro.request.method === 'POST') {
         await sendMagicLinkEmail({
           to: email,
           magicLink,
-          resendApiKey: env?.RESEND_API_KEY ?? import.meta.env.RESEND_API_KEY,
+          resendApiKey: env.RESEND_API_KEY,
         })
       }
 

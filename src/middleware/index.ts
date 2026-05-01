@@ -1,4 +1,5 @@
 import { defineMiddleware } from 'astro:middleware'
+import { env } from 'cloudflare:workers'
 import { getRedis } from '../lib/redis.ts'
 import { getDb } from '../lib/db.ts'
 import { getSessionApiKeyId } from '../lib/auth.ts'
@@ -12,7 +13,6 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return next()
   }
 
-  const env = context.locals.runtime?.env as Record<string, string> | undefined
   const sessionId = context.cookies.get('session')?.value
 
   if (!sessionId) {
@@ -20,8 +20,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
 
   const redis = getRedis(
-    env?.UPSTASH_REDIS_REST_URL ?? import.meta.env.UPSTASH_REDIS_REST_URL,
-    env?.UPSTASH_REDIS_REST_TOKEN ?? import.meta.env.UPSTASH_REDIS_REST_TOKEN,
+    env.UPSTASH_REDIS_REST_URL,
+    env.UPSTASH_REDIS_REST_TOKEN,
   )
 
   const apiKeyId = await getSessionApiKeyId(redis, sessionId)
@@ -30,7 +30,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return context.redirect('/login')
   }
 
-  const db = getDb(env?.DATABASE_URL ?? import.meta.env.DATABASE_URL)
+  const db = getDb(env.DATABASE_URL)
   const key = await db.query.apiKeys.findFirst({
     where: eq(apiKeys.id, apiKeyId),
     columns: { id: true, email: true, plan: true, isActive: true },

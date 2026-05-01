@@ -1,12 +1,8 @@
 import type { APIRoute } from 'astro'
+import { env } from 'cloudflare:workers'
 
 export const POST: APIRoute = async ({ request }) => {
-  const env = (globalThis as unknown as { __env__?: Record<string, string> }).__env__
-
-  // Use DEMO_API_KEY from env — a pre-seeded free-plan key for anonymous validation
-  const demoKey =
-    (typeof env === 'object' && env?.DEMO_API_KEY) ||
-    (import.meta.env.DEMO_API_KEY as string | undefined)
+  const demoKey = env.DEMO_API_KEY
 
   if (!demoKey) {
     return new Response(JSON.stringify({ error: 'Demo not configured' }), {
@@ -33,16 +29,24 @@ export const POST: APIRoute = async ({ request }) => {
     })
   }
 
-  const apiBase = import.meta.env.PUBLIC_API_BASE ?? 'https://api.taxvett.com'
+  const apiBase = env.PUBLIC_API_BASE ?? 'https://api.taxvett.com'
 
-  const upstream = await fetch(`${apiBase}/v1/validate`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Api-Key': demoKey,
-    },
-    body: JSON.stringify({ number: number.trim() }),
-  })
+  let upstream: Response
+  try {
+    upstream = await fetch(`${apiBase}/v1/validate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Api-Key': demoKey,
+      },
+      body: JSON.stringify({ number: number.trim() }),
+    })
+  } catch {
+    return new Response(JSON.stringify({ error: 'Upstream unavailable' }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
 
   const data = await upstream.json()
   return new Response(JSON.stringify(data), {
