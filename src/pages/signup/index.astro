@@ -1,0 +1,199 @@
+---
+import { getDb } from '../../lib/db.ts'
+import { getRedis } from '../../lib/redis.ts'
+import { hashApiKey, generateApiKey } from '../../lib/crypto.ts'
+import { generateMagicToken, checkMagicLinkRateLimit } from '../../lib/auth.ts'
+import { sendMagicLinkEmail } from '../../lib/email.ts'
+import { eq } from 'drizzle-orm'
+import { apiKeys } from '../../db/schema.ts'
+import { env } from 'cloudflare:workers'
+
+const plan = (Astro.url.searchParams.get('plan') ?? 'free') as 'free' | 'pro'
+
+// Fetch live price from Stripe
+type StripePrice = { unit_amount: number | null; currency: string; recurring?: { interval: string } }
+let proPrice: StripePrice | null = null
+try {
+  const res = await fetch(`https://api.stripe.com/v1/prices/${env.STRIPE_PRO_PRICE_ID}`, {
+    headers: { Authorization: `Basic ${btoa(env.STRIPE_SECRET_KEY + ':')}` },
+    signal: AbortSignal.timeout(4000),
+  })
+  if (res.ok) proPrice = await res.json() as StripePrice
+} catch { /* fall back to placeholder */ }
+
+const priceAmount = proPrice?.unit_amount != null
+  ? new Intl.NumberFormat('en', { style: 'currency', currency: proPrice.currency.toUpperCase(), maximumFractionDigits: 0 }).format(proPrice.unit_amount / 100)
+  : '—'
+const priceInterval = proPrice?.recurring?.interval ?? 'month'
+
+let error = ''
+
+if (Astro.request.method === 'POST') {
+  const data = await Astro.request.formData()
+  const action = String(data.get('action') ?? '')
+
+  if (action === 'checkout-pro') {
+    // Redirect to Stripe Checkout via client-side form POST
+    // The actual session is created in /api/checkout
+    return Astro.redirect('/api/checkout', 303)
+  }
+
+  // Free plan signup
+  const email = String(data.get('email') ?? '').trim().toLowerCase()
+
+  if (!email || !email.includes('@')) {
+    error = 'Please enter a valid email address.'
+  } else {
+    const db = getDb(env.DATABASE_URL)
+    const redis = getRedis(env.UPSTASH_REDIS_REST_URL, env.UPSTASH_REDIS_REST_TOKEN)
+
+    const allowed = await checkMagicLinkRateLimit(redis, email)
+    if (!allowed) {
+      error = 'Too many attempts. Please wait a few minutes and try again.'
+    } else {
+      let keyRow = await db.query.apiKeys.findFirst({
+        where: eq(apiKeys.email, email),
+        columns: { id: true },
+      })
+
+      if (!keyRow) {
+        // New account — create free API key
+        const rawKey = await generateApiKey()
+        const keyHash = await hashApiKey(rawKey, env.API_KEY_SALT)
+        const [inserted] = await db
+          .insert(apiKeys)
+          .values({ keyHash, plan: 'free', email })
+          .returning({ id: apiKeys.id })
+        keyRow = inserted
+      }
+
+      const token = await generateMagicToken(redis, keyRow.id)
+      const magicLink = `${Astro.url.origin}/login/callback?token=${token}`
+      await sendMagicLinkEmail({
+        to: email,
+        magicLink,
+        resendApiKey: env.RESEND_API_KEY,
+      })
+
+      return Astro.redirect('/signup/success')
+    }
+  }
+}
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Get started — TaxVett</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f8fafc; color: #1e293b; min-height: 100vh; }
+    nav { display: flex; align-items: center; padding: 0 24px; height: 56px; border-bottom: 1px solid #e2e8f0; background: #fff; }
+    .logo { font-size: 18px; font-weight: 700; color: #0ea5e9; text-decoration: none; }
+    .page { max-width: 820px; margin: 0 auto; padding: 56px 24px; }
+    h1 { font-size: 30px; font-weight: 800; text-align: center; margin-bottom: 8px; }
+    .subtitle { text-align: center; color: #64748b; font-size: 16px; margin-bottom: 48px; }
+    .plans { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 560px) { .plans { grid-template-columns: 1fr; } }
+    .plan-card { background: #fff; border: 2px solid #e2e8f0; border-radius: 14px; padding: 28px; display: flex; flex-direction: column; }
+    .plan-card.highlighted { border-color: #0ea5e9; }
+    .plan-badge { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; padding: 3px 10px; border-radius: 20px; background: #e0f2fe; color: #0369a1; width: fit-content; margin-bottom: 16px; }
+    .plan-badge.pro { background: #fef9c3; color: #854d0e; }
+    .plan-name { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+    .plan-price { font-size: 32px; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
+    .plan-price span { font-size: 15px; font-weight: 500; color: #64748b; }
+    .plan-desc { font-size: 14px; color: #64748b; margin-bottom: 20px; line-height: 1.6; }
+    .plan-features { list-style: none; margin-bottom: 28px; flex: 1; }
+    .plan-features li { font-size: 14px; padding: 5px 0; display: flex; align-items: center; gap: 8px; color: #334155; }
+    .plan-features li::before { content: '✓'; color: #0ea5e9; font-weight: 700; flex-shrink: 0; }
+    label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; }
+    input[type="email"] { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 15px; outline: none; margin-bottom: 12px; }
+    input[type="email"]:focus { border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14,165,233,.15); }
+    .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; }
+    .btn-primary { background: #0ea5e9; color: #fff; }
+    .btn-primary:hover { background: #0284c7; }
+    .btn-pro { background: #0f172a; color: #fff; }
+    .btn-pro:hover { background: #1e293b; }
+    .error { color: #ef4444; font-size: 13px; margin-bottom: 12px; }
+    .login-hint { text-align: center; margin-top: 32px; font-size: 14px; color: #64748b; }
+    .login-hint a { color: #0ea5e9; text-decoration: none; font-weight: 500; }
+    .login-hint a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/" class="logo">TaxVett</a>
+  </nav>
+
+  <div class="page">
+    <h1>Get started with TaxVett</h1>
+    <p class="subtitle">Pick the plan that fits your needs. Upgrade anytime.</p>
+
+    <div class="plans">
+      <!-- Free plan -->
+      <div class="plan-card">
+        <div class="plan-badge">Free</div>
+        <div class="plan-name">Developer</div>
+        <div class="plan-price">$0 <span>/ month</span></div>
+        <p class="plan-desc">Perfect for trying out the API and low-volume projects.</p>
+        <ul class="plan-features">
+          <li>100 req/min rate limit</li>
+          <li>Single validation endpoint</li>
+          <li>30+ countries</li>
+          <li>Dashboard &amp; API key management</li>
+        </ul>
+        <form method="POST">
+          {error && <p class="error">{error}</p>}
+          <label for="email-free">Work email</label>
+          <input type="email" id="email-free" name="email" placeholder="you@company.com" required autocomplete="email" />
+          <button type="submit" class="btn btn-primary">Create free account →</button>
+        </form>
+      </div>
+
+      <!-- Pro plan -->
+      <div class="plan-card highlighted">
+        <div class="plan-badge pro">Pro</div>
+        <div class="plan-name">Production</div>
+        <div class="plan-price">{priceAmount} <span>/ {priceInterval}</span></div>
+        <p class="plan-desc">For production workloads that need higher throughput and SLA.</p>
+        <ul class="plan-features">
+          <li>1 000 req/min rate limit</li>
+          <li>Batch validation (up to 50)</li>
+          <li>Webhook notifications</li>
+          <li>Priority support</li>
+          <li>30+ countries</li>
+        </ul>
+        <form method="POST" id="checkout-form">
+          <input type="hidden" name="action" value="checkout-pro" />
+          <button type="submit" class="btn btn-pro" id="checkout-btn">Upgrade to Pro →</button>
+        </form>
+      </div>
+    </div>
+
+    <p class="login-hint">Already have an account? <a href="/login">Sign in</a></p>
+  </div>
+
+  <script>
+    // Override Pro form to POST JSON to /api/checkout instead of navigating
+    const checkoutForm = document.getElementById('checkout-form') as HTMLFormElement
+    const checkoutBtn = document.getElementById('checkout-btn') as HTMLButtonElement
+    checkoutForm?.addEventListener('submit', async (e) => {
+      e.preventDefault()
+      checkoutBtn.disabled = true
+      checkoutBtn.textContent = 'Redirecting…'
+      try {
+        const res = await fetch('/api/checkout', { method: 'POST' })
+        const data = await res.json() as { url?: string; error?: string }
+        if (!res.ok || !data.url) throw new Error(data.error ?? 'No URL returned')
+        window.location.href = data.url
+      } catch {
+        checkoutBtn.disabled = false
+        checkoutBtn.textContent = 'Upgrade to Pro →'
+        alert('Something went wrong. Please try again.')
+      }
+    })
+  </script>
+</body>
+</html>

@@ -175,6 +175,9 @@ const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateStr
           <span class={`plan-badge ${plan === 'pro' ? 'pro' : ''}`}>{plan}</span>
         </div>
         <div class="card-sub">{plan === 'pro' ? '1 000 req/min rate limit' : '100 req/min rate limit'}</div>
+        {plan !== 'pro' && (
+          <button id="upgrade-btn" class="btn btn-primary btn-sm" style="margin-top:14px;width:100%">Upgrade to Pro →</button>
+        )}
       </div>
     </div>
 
@@ -281,5 +284,24 @@ const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateStr
       </div>
     </div>
   </main>
+
+  <script>
+    const upgradeBtn = document.getElementById('upgrade-btn')
+    if (upgradeBtn) {
+      upgradeBtn.addEventListener('click', async () => {
+        upgradeBtn.setAttribute('disabled', 'true')
+        upgradeBtn.textContent = 'Redirecting…'
+        try {
+          const res = await fetch('/api/checkout', { method: 'POST' })
+          const { url } = await res.json() as { url: string }
+          window.location.href = url
+        } catch {
+          upgradeBtn.removeAttribute('disabled')
+          upgradeBtn.textContent = 'Upgrade to Pro →'
+          alert('Something went wrong. Please try again.')
+        }
+      })
+    }
+  </script>
 </body>
 </html>

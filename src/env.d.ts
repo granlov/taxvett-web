@@ -17,6 +17,8 @@ declare module 'cloudflare:workers' {
     UPSTASH_REDIS_REST_TOKEN: string
     RESEND_API_KEY: string
     PUBLIC_API_BASE: string
+    STRIPE_SECRET_KEY: string
+    STRIPE_PRO_PRICE_ID: string
   }
   export { env }
 }
