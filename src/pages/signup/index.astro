@@ -139,6 +139,7 @@ if (Astro.request.method === 'POST') {
         <div class="plan-price">$0 <span>/ month</span></div>
         <p class="plan-desc">Perfect for trying out the API and low-volume projects.</p>
         <ul class="plan-features">
+          <li>100 req/month</li>
           <li>10 req/min rate limit</li>
           <li>Single validation endpoint</li>
           <li>30+ countries</li>
@@ -159,6 +160,7 @@ if (Astro.request.method === 'POST') {
         <div class="plan-price">{priceAmount} <span>/ {priceInterval}</span></div>
         <p class="plan-desc">For production workloads that need higher throughput and SLA.</p>
         <ul class="plan-features">
+          <li>5 000 req/month</li>
           <li>60 req/min rate limit</li>
           <li>Batch validation (up to 50)</li>
           <li>Webhook notifications</li>
