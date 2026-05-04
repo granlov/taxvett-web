@@ -257,36 +257,7 @@ const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateStr
       </div>
     </div>
 
-    <!-- Webhooks -->
-    <div class="section">
-      <div class="section-header">
-        <h2>Webhooks</h2>
-      </div>
-
-      {webhookList.length === 0 ? (
-        <p style="color:#94a3b8;font-size:14px">No webhooks configured yet.</p>
-      ) : (
-        <div>
-          {webhookList.map((wh) => (
-            <div class="webhook-row">
-              <span class={`badge ${wh.isActive ? 'badge-active' : 'badge-inactive'}`}>
-                {wh.isActive ? 'Active' : 'Inactive'}
-              </span>
-              <span class="webhook-url">{wh.url}</span>
-              <form method="POST" action="/api/webhooks/delete" class="inline">
-                <input type="hidden" name="id" value={wh.id} />
-                <button type="submit" class="btn btn-danger btn-sm">Remove</button>
-              </form>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <form class="add-form" method="POST" action="/api/webhooks/create">
-        <input type="url" name="url" placeholder="https://your-server.com/webhook" required />
-        <button type="submit" class="btn btn-primary">Add webhook</button>
-      </form>
-    </div>
+    {/* Webhooks — pausad, döljs tills vidare */}
 
     <!-- Account info -->
     <div class="section">
