@@ -191,7 +191,7 @@ const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateStr
         <div class="card-value" style="font-size:20px;margin-top:4px">
           <span class={`plan-badge ${plan === 'pro' ? 'pro' : ''}`}>{plan}</span>
         </div>
-        <div class="card-sub">{plan === 'pro' ? '1 000 req/min rate limit' : '100 req/min rate limit'}</div>
+        <div class="card-sub">{plan === 'pro' ? '60 req/min rate limit' : '10 req/min rate limit'}</div>
         {plan !== 'pro' && (
           <button id="upgrade-btn" class="btn btn-primary btn-sm" style="margin-top:14px;width:100%">Upgrade to Pro →</button>
         )}
