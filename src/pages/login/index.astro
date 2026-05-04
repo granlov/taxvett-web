@@ -17,33 +17,38 @@ if (Astro.request.method === 'POST') {
   if (!email || !email.includes('@')) {
     error = 'Please enter a valid email address.'
   } else {
-    const db = getDb(env.DATABASE_URL)
-    const redis = getRedis(
-      env.UPSTASH_REDIS_REST_URL,
-      env.UPSTASH_REDIS_REST_TOKEN,
-    )
+    try {
+      const db = getDb(env.DATABASE_URL)
+      const redis = getRedis(
+        env.UPSTASH_REDIS_REST_URL,
+        env.UPSTASH_REDIS_REST_TOKEN,
+      )
 
-    const allowed = await checkMagicLinkRateLimit(redis, email)
-    if (!allowed) {
-      error = 'Too many login attempts. Please wait a few minutes and try again.'
-    } else {
-      const key = await db.query.apiKeys.findFirst({
-        where: eq(apiKeys.email, email),
-        columns: { id: true },
-      })
-
-      // Don't reveal whether the email exists — always show success
-      if (key) {
-        const token = await generateMagicToken(redis, key.id)
-        const magicLink = `${Astro.url.origin}/login/callback?token=${token}`
-        await sendMagicLinkEmail({
-          to: email,
-          magicLink,
-          resendApiKey: env.RESEND_API_KEY,
+      const allowed = await checkMagicLinkRateLimit(redis, email)
+      if (!allowed) {
+        error = 'Too many login attempts. Please wait a few minutes and try again.'
+      } else {
+        const key = await db.query.apiKeys.findFirst({
+          where: eq(apiKeys.email, email),
+          columns: { id: true },
         })
-      }
 
-      success = true
+        // Don't reveal whether the email exists — always show success
+        if (key) {
+          const token = await generateMagicToken(redis, key.id)
+          const magicLink = `${Astro.url.origin}/login/callback?token=${token}`
+          await sendMagicLinkEmail({
+            to: email,
+            magicLink,
+            resendApiKey: env.RESEND_API_KEY,
+          })
+        }
+
+        success = true
+      }
+    } catch (e) {
+      console.error('[login POST error]', e instanceof Error ? e.message : String(e), e instanceof Error ? e.stack : '')
+      error = 'Something went wrong. Please try again.'
     }
   }
 }
@@ -79,8 +84,14 @@ if (Astro.request.method === 'POST') {
     <div class="logo">TaxVett</div>
     <h1>Sign in to your dashboard</h1>
     {Astro.url.searchParams.get('welcome') === '1' && (
-      <div class="success" style="margin-bottom:16px">
-        ✓ Payment successful! Enter the email you used at checkout — we'll send you a login link.
+      <div style="margin-bottom:16px">
+        <div class="success">
+          ✓ Payment successful! A login link was sent to the email you used at checkout.
+        </div>
+        <div class="no-mail" style="margin-top:8px">
+          Didn't receive it? Enter your email below to get a new link. Still stuck after 5 minutes?{' '}
+          <a href="mailto:support@taxvett.com">Email support@taxvett.com</a> with your payment confirmation.
+        </div>
       </div>
     )}
     <p>Enter the email you used to sign up. We'll send you a login link.</p>

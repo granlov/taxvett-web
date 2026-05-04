@@ -33,30 +33,47 @@ if (Astro.request.method === 'POST') {
 }
 
 // Fetch stats
-const sevenDaysAgo = sql`now() - interval '7 days'`
-const [totalResult, byCountry, byDay, keyRow, webhookList] = await Promise.all([
-  db.select({ count: sql<number>`count(*)::int` }).from(usageLog).where(eq(usageLog.apiKeyId, apiKeyId)),
-  db
-    .select({ country: usageLog.country, count: sql<number>`count(*)::int` })
-    .from(usageLog)
-    .where(eq(usageLog.apiKeyId, apiKeyId))
-    .groupBy(usageLog.country)
-    .orderBy(desc(sql`count(*)`))
-    .limit(5),
-  db
-    .select({
-      date: sql<string>`date_trunc('day', ${usageLog.createdAt})::date::text`,
-      count: sql<number>`count(*)::int`,
-    })
-    .from(usageLog)
-    .where(sql`${usageLog.apiKeyId} = ${apiKeyId} AND ${usageLog.createdAt} >= ${sevenDaysAgo}`)
-    .groupBy(sql`date_trunc('day', ${usageLog.createdAt})`)
-    .orderBy(sql`date_trunc('day', ${usageLog.createdAt})`),
-  db.query.apiKeys.findFirst({ where: eq(apiKeys.id, apiKeyId), columns: { keyHash: true, createdAt: true } }),
-  db.select().from(webhooks).where(eq(webhooks.apiKeyId, apiKeyId)).orderBy(desc(webhooks.createdAt)),
-])
+let totalRequests = 0
+let byCountry: { country: string | null; count: number }[] = []
+let byDay: { date: string; count: number }[] = []
+let keyRow: { keyHash: string; createdAt: Date } | undefined = undefined
+let webhookList: typeof import('../../db/schema.ts').webhooks.$inferSelect[] = []
 
-const totalRequests = totalResult[0]?.count ?? 0
+try {
+  const sevenDaysAgo = sql`now() - interval '7 days'`
+  const [totalResult, byCountryResult, byDayResult, keyRowResult] = await Promise.all([
+    db.select({ count: sql<number>`count(*)::int` }).from(usageLog).where(eq(usageLog.apiKeyId, apiKeyId)),
+    db
+      .select({ country: usageLog.country, count: sql<number>`count(*)::int` })
+      .from(usageLog)
+      .where(eq(usageLog.apiKeyId, apiKeyId))
+      .groupBy(usageLog.country)
+      .orderBy(desc(sql`count(*)`))
+      .limit(5),
+    db
+      .select({
+        date: sql<string>`date_trunc('day', ${usageLog.createdAt})::date::text`,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(usageLog)
+      .where(sql`${usageLog.apiKeyId} = ${apiKeyId} AND ${usageLog.createdAt} >= ${sevenDaysAgo}`)
+      .groupBy(sql`date_trunc('day', ${usageLog.createdAt})`)
+      .orderBy(sql`date_trunc('day', ${usageLog.createdAt})`),
+    db.query.apiKeys.findFirst({ where: eq(apiKeys.id, apiKeyId), columns: { keyHash: true, createdAt: true } }),
+  ])
+  totalRequests = totalResult[0]?.count ?? 0
+  byCountry = byCountryResult
+  byDay = byDayResult
+  keyRow = keyRowResult
+} catch (e) {
+  console.error('[dashboard stats error]', e instanceof Error ? e.message : String(e))
+}
+
+try {
+  webhookList = await db.select().from(webhooks).where(eq(webhooks.apiKeyId, apiKeyId)).orderBy(desc(webhooks.createdAt))
+} catch (e) {
+  console.error('[dashboard webhooks error]', e instanceof Error ? e.message : String(e))
+}
 const planLimit = plan === 'pro' ? 1000 : 100
 const quotaPct = Math.min(100, Math.round((totalRequests / planLimit) * 100))
 
