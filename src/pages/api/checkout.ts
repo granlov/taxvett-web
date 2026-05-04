@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro'
 import { env } from 'cloudflare:workers'
 
-export const POST: APIRoute = async ({ request, url }) => {
+export const POST: APIRoute = async ({ url }) => {
   const origin = url.origin
 
   const body = new URLSearchParams()

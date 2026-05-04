@@ -109,9 +109,12 @@ const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateStr
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: system-ui, sans-serif; background: #f8fafc; color: #1e293b; min-height: 100vh; }
     nav { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 56px; }
-    .nav-logo { font-size: 18px; font-weight: 700; color: #0ea5e9; }
+    .nav-logo { font-size: 18px; font-weight: 700; color: #0ea5e9; text-decoration: none; }
     .nav-right { display: flex; gap: 16px; align-items: center; font-size: 14px; color: #64748b; }
-    nav a { color: #0ea5e9; text-decoration: none; font-size: 14px; font-weight: 500; }
+    nav a { color: #64748b; text-decoration: none; font-size: 14px; }
+    nav a.nav-logo { color: #0ea5e9; font-weight: 700; }
+    nav a.nav-docs { font-weight: 500; }
+    nav a.nav-docs:hover { color: #0ea5e9; }
     main { max-width: 960px; margin: 0 auto; padding: 32px 24px; }
     h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 28px; }
@@ -168,8 +171,9 @@ const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateStr
 </head>
 <body>
   <nav>
-    <span class="nav-logo">TaxVett</span>
+    <a href="/" class="nav-logo">TaxVett</a>
     <div class="nav-right">
+      <a href="https://api.taxvett.com/docs" target="_blank" rel="noopener" class="nav-docs">API Docs</a>
       <span>{email}</span>
       <form method="POST" class="inline">
         <input type="hidden" name="action" value="logout" />
