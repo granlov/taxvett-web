@@ -65,6 +65,14 @@ if (Astro.request.method === 'POST') {
           .values({ keyHash, plan: 'free', email })
           .returning({ id: apiKeys.id })
         keyRow = inserted
+        if (env.DISCORD_WEBHOOK_URL) {
+          fetch(env.DISCORD_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: `👤 **Ny free-signup** — \`${email}\`` }),
+            signal: AbortSignal.timeout(5000),
+          }).catch(() => {})
+        }
       }
 
       const token = await generateMagicToken(redis, keyRow.id)

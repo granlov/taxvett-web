@@ -19,6 +19,14 @@ if (Astro.request.method === 'POST') {
       .set({ keyHash: newHash })
       .where(eq(apiKeys.id, apiKeyId))
     newKeyRaw = rawKey
+    if (env.DISCORD_WEBHOOK_URL) {
+      fetch(env.DISCORD_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: `🔑 **API-nyckel regenererad** — konto \`${email ?? apiKeyId}\`` }),
+        signal: AbortSignal.timeout(5000),
+      }).catch(() => {})
+    }
   } else if (data.get('action') === 'logout') {
     const { getRedis } = await import('../../lib/redis.ts')
     const { deleteSession } = await import('../../lib/auth.ts')
