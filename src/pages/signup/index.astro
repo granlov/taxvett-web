@@ -159,6 +159,7 @@ if (Astro.request.method === 'POST') {
     .btn-enterprise { background: #6b21a8; color: #fff; }
     .btn-enterprise:hover { background: #581c87; }
     .btn-link { display: block; text-align: center; text-decoration: none; }
+    .plan-from { font-size: 12px; color: var(--text-faint); font-style: italic; margin-bottom: 8px; }
     .error { color: #ef4444; font-size: 13px; margin-bottom: 12px; }
     .login-hint { text-align: center; margin-top: 32px; font-size: 14px; color: var(--text-muted); }
     .login-hint a { color: var(--brand); text-decoration: none; font-weight: 500; }
@@ -192,27 +193,29 @@ if (Astro.request.method === 'POST') {
           <li>30+ countries</li>
           <li>Dashboard &amp; API key management</li>
         </ul>
-        <form method="POST">
-          {error && <p class="error">{error}</p>}
-          <label for="email-free">Work email</label>
-          <input type="email" id="email-free" name="email" placeholder="you@company.com" required autocomplete="email" />
-          <button type="submit" class="btn btn-primary">Create free account →</button>
-        </form>
+        <button type="button" id="free-cta" class="btn btn-primary" style={error ? 'display:none' : ''}>Get started free →</button>
+        <div id="email-section" style={error ? '' : 'display:none'}>
+          <form method="POST">
+            {error && <p class="error">{error}</p>}
+            <label for="email-free" style="margin-top:12px">Work email</label>
+            <input type="email" id="email-free" name="email" placeholder="you@company.com" required autocomplete="email" />
+            <button type="submit" class="btn btn-primary">Create account →</button>
+          </form>
+        </div>
       </div>
 
       <!-- Pro plan -->
       <div class="plan-card highlighted">
         <div class="plan-badge pro">Pro</div>
-        <div class="plan-name">Production</div>
+        <div class="plan-name">Pro</div>
         <div class="plan-price">{priceAmount} <span>/ {priceInterval}</span></div>
         <p class="plan-desc">For production workloads that need higher throughput and SLA.</p>
+        <p class="plan-from">Everything in Developer, plus:</p>
         <ul class="plan-features">
-          <li>5 000 req/month</li>
+          <li>5 000 req/month</li>
           <li>60 req/min rate limit</li>
           <li>Batch validation (up to 50)</li>
-          <li>Webhook notifications</li>
           <li>Priority support</li>
-          <li>30+ countries</li>
         </ul>
         <form method="POST" id="checkout-form">
           <input type="hidden" name="action" value="checkout-pro" />
@@ -226,16 +229,14 @@ if (Astro.request.method === 'POST') {
         <div class="plan-name">Scale</div>
         <div class="plan-price">$79 <span>/ month</span></div>
         <p class="plan-desc">Maximum throughput, guaranteed uptime, and dedicated support for demanding integrations.</p>
+        <p class="plan-from">Everything in Pro, plus:</p>
         <ul class="plan-features">
           <li>Unlimited req/month</li>
           <li>300 req/min rate limit</li>
-          <li>Batch validation (up to 50)</li>
-          <li>Webhook notifications</li>
           <li>99.9% SLA</li>
-          <li>Priority support</li>
-          <li>30+ countries</li>
+          <li>Dedicated support</li>
         </ul>
-        <a href="mailto:support@taxvett.com?subject=Enterprise%20plan" class="btn btn-enterprise btn-link">Contact us →</a>
+        <a href="mailto:support@taxvett.com?subject=Enterprise%20plan" class="btn btn-pro btn-link">Contact us →</a>
       </div>
     </div>
 
@@ -260,6 +261,14 @@ if (Astro.request.method === 'POST') {
         checkoutBtn.textContent = 'Upgrade to Pro →'
         alert('Something went wrong. Please try again.')
       }
+    })
+    // Free plan CTA toggle
+    const freeCta = document.getElementById('free-cta') as HTMLButtonElement | null
+    const emailSection = document.getElementById('email-section') as HTMLDivElement | null
+    freeCta?.addEventListener('click', () => {
+      if (emailSection) emailSection.style.display = 'block'
+      if (freeCta) freeCta.style.display = 'none'
+      ;(document.getElementById('email-free') as HTMLInputElement | null)?.focus()
     })
   </script>
 </body>

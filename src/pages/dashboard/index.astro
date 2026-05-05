@@ -49,7 +49,7 @@ let keyRow: { keyHash: string; createdAt: Date } | undefined = undefined
 let webhookList: typeof import('../../db/schema.ts').webhooks.$inferSelect[] = []
 
 try {
-  const sevenDaysAgo = sql`now() - interval '7 days'`
+  const fourteenDaysAgo = sql`now() - interval '14 days'`
   const [totalResult, monthlyResult, byCountryResult, byDayResult, keyRowResult] = await Promise.all([
     db.select({ count: sql<number>`count(*)::int` }).from(usageLog).where(eq(usageLog.apiKeyId, apiKeyId)),
     db
@@ -69,7 +69,7 @@ try {
         count: sql<number>`count(*)::int`,
       })
       .from(usageLog)
-      .where(sql`${usageLog.apiKeyId} = ${apiKeyId} AND ${usageLog.createdAt} >= ${sevenDaysAgo}`)
+      .where(sql`${usageLog.apiKeyId} = ${apiKeyId} AND ${usageLog.createdAt} >= ${fourteenDaysAgo}`)
       .groupBy(sql`date_trunc('day', ${usageLog.createdAt})`)
       .orderBy(sql`date_trunc('day', ${usageLog.createdAt})`),
     db.query.apiKeys.findFirst({ where: eq(apiKeys.id, apiKeyId), columns: { keyHash: true, createdAt: true } }),
@@ -92,10 +92,10 @@ const PLAN_MONTHLY_LIMITS: Record<string, number> = { free: 100, pro: 5000, ente
 const planLimit = PLAN_MONTHLY_LIMITS[plan] ?? 100
 const quotaPct = planLimit === Infinity ? 0 : Math.min(100, Math.round((monthlyRequests / planLimit) * 100))
 
-// Build 7-day chart data (fill missing days with 0)
+// Build 14-day chart data (fill missing days with 0)
 const today = new Date()
 const chartDays: { date: string; count: number }[] = []
-for (let i = 6; i >= 0; i--) {
+for (let i = 13; i >= 0; i--) {
   const d = new Date(today)
   d.setDate(d.getDate() - i)
   const dateStr = d.toISOString().slice(0, 10)
@@ -245,27 +245,12 @@ const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateStr
           </div>
         )}
       </div>
-      <div class="card">
-        <div class="card-title">Total requests</div>
-        <div class="card-value">{totalRequests.toLocaleString()}</div>
-        <div class="card-sub">all time</div>
-      </div>
-      <div class="card">
-        <div class="card-title">Plan</div>
-        <div class="card-value" style="font-size:20px;margin-top:4px">
-          <span class={`plan-badge ${plan === 'pro' ? 'pro' : ''}`}>{plan}</span>
-        </div>
-        <div class="card-sub">{plan === 'pro' ? '60 req/min · 5,000 req/month' : plan === 'enterprise' ? '300 req/min · unlimited' : '10 req/min · 100 req/month'}</div>
-        {plan !== 'pro' && plan !== 'enterprise' && (
-          <button id="upgrade-btn" class="btn btn-primary btn-sm" style="margin-top:14px;width:100%">Upgrade to Pro →</button>
-        )}
-      </div>
     </div>
 
     <!-- Requests per day chart -->
     <div class="section">
       <div class="section-header">
-        <h2>Requests per day — last 7 days</h2>
+        <h2>Requests per day — last 14 days</h2>
       </div>
       <div class="chart">
         {chartDays.map((day) => (
@@ -323,17 +308,23 @@ const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateStr
 
     {/* Webhooks — pausad, döljs tills vidare */}
 
-    <!-- Account info -->
+    <!-- Account info + Plan (merged) -->
     <div class="section">
       <h2 style="margin-bottom:16px">Account</h2>
       <div class="info-grid">
         <span class="info-label">Email</span>
         <span>{email ?? '—'}</span>
         <span class="info-label">Plan</span>
-        <span><span class={`plan-badge ${plan === 'pro' ? 'pro' : ''}`}>{plan}</span></span>
+        <span>
+          <span class={`plan-badge ${plan === 'pro' ? 'pro' : ''}`}>{plan}</span>
+          <span style="font-size:13px;color:var(--text-muted);margin-left:8px">{plan === 'pro' ? '60 req/min · 5,000/month' : plan === 'enterprise' ? '300 req/min · unlimited' : '10 req/min · 100/month'}</span>
+        </span>
         <span class="info-label">API key created</span>
         <span>{createdAt}</span>
       </div>
+      {plan !== 'pro' && plan !== 'enterprise' && (
+        <button id="upgrade-btn" class="btn btn-primary btn-sm" style="margin-top:16px">Upgrade to Pro →</button>
+      )}
     </div>
   </main>
 
