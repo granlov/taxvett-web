@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="96" viewBox="0 0 420 96" fill="none">
+  <circle cx="48" cy="48" r="36" fill="url(#bGradient)"/>
+  <path d="M31 48H65" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" opacity="0.9"/>
+  <path d="M48 31V65" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" opacity="0.9"/>
+  <path d="M36 52.5L44 60.5L61 39" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="102" y="58" fill="#0F2D2A" font-family="Sora, Arial, sans-serif" font-size="41" font-weight="700">TaxVett</text>
+  <defs>
+    <linearGradient id="bGradient" x1="12" y1="12" x2="84" y2="84" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F766E"/>
+      <stop offset="1" stop-color="#0D5B56"/>
+    </linearGradient>
+  </defs>
+</svg>

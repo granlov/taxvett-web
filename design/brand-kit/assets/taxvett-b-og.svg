@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" fill="none">
+  <rect width="1200" height="630" fill="#F7FCFA"/>
+  <circle cx="106" cy="88" r="216" fill="#DDEFEA" opacity="0.85"/>
+  <circle cx="1090" cy="590" r="260" fill="#DBF1EA" opacity="0.92"/>
+  <rect x="80" y="72" width="1040" height="486" rx="36" fill="white"/>
+  <circle cx="162" cy="164" r="44" fill="url(#bOgGradient)"/>
+  <path d="M136 164H188" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" opacity="0.9"/>
+  <path d="M162 138V190" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" opacity="0.9"/>
+  <path d="M146 170L156 180L177 151" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="228" y="177" fill="#0F2D2A" font-family="Sora, Arial, sans-serif" font-size="54" font-weight="700">TaxVett</text>
+  <text x="118" y="294" fill="#0F2D2A" font-family="Sora, Arial, sans-serif" font-size="68" font-weight="700">Trusted tax identity</text>
+  <text x="118" y="374" fill="#0D5B56" font-family="Sora, Arial, sans-serif" font-size="68" font-weight="700">for serious integrations.</text>
+  <text x="118" y="444" fill="#45635F" font-family="Source Sans 3, Arial, sans-serif" font-size="34" font-weight="600">Built for finance-aware teams that want compliance signals without heavyweight workflows.</text>
+  <defs>
+    <linearGradient id="bOgGradient" x1="118" y1="120" x2="206" y2="208" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F766E"/>
+      <stop offset="1" stop-color="#0D5B56"/>
+    </linearGradient>
+  </defs>
+</svg>

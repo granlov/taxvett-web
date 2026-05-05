@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" fill="none">
+  <rect width="1200" height="630" fill="#F6FBFF"/>
+  <circle cx="153" cy="95" r="220" fill="#DDF4FF" opacity="0.9"/>
+  <circle cx="1095" cy="612" r="246" fill="#D6EEFF" opacity="0.8"/>
+  <rect x="80" y="72" width="1040" height="486" rx="36" fill="white"/>
+  <rect x="118" y="120" width="88" height="88" rx="28" fill="url(#aOgGradient)"/>
+  <rect x="140" y="142" width="36" height="8" rx="4" fill="#FFFFFF" opacity="0.94"/>
+  <rect x="140" y="159" width="48" height="8" rx="4" fill="#FFFFFF" opacity="0.94"/>
+  <rect x="140" y="176" width="25" height="8" rx="4" fill="#FFFFFF" opacity="0.94"/>
+  <path d="M172 186L179 193L193 174" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="228" y="177" fill="#10233F" font-family="Manrope, Arial, sans-serif" font-size="56" font-weight="800">TaxVett</text>
+  <text x="118" y="294" fill="#10233F" font-family="Manrope, Arial, sans-serif" font-size="70" font-weight="800">Validate tax IDs with</text>
+  <text x="118" y="374" fill="#0B5FB3" font-family="Manrope, Arial, sans-serif" font-size="70" font-weight="800">fast verification signals.</text>
+  <text x="118" y="444" fill="#4D5F77" font-family="Manrope, Arial, sans-serif" font-size="32" font-weight="600">Global coverage. Low latency. Built for checkout, invoicing, and ops flows.</text>
+  <defs>
+    <linearGradient id="aOgGradient" x1="118" y1="120" x2="206" y2="208" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#10A6E8"/>
+      <stop offset="1" stop-color="#0B5FB3"/>
+    </linearGradient>
+  </defs>
+</svg>
