@@ -40,6 +40,7 @@ export const POST: APIRoute = async ({ request }) => {
         'X-Api-Key': demoKey,
       },
       body: JSON.stringify({ number: number.trim() }),
+      signal: AbortSignal.timeout(10000),
     })
   } catch {
     return new Response(JSON.stringify({ error: 'Upstream unavailable' }), {
