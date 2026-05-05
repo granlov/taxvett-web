@@ -37,23 +37,44 @@ if (token) {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sign in — TaxVett</title>
+  <meta name="theme-color" content="#10A6E8" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet" />
   <style>
+    :root {
+      --bg: #f8fafc; --surface: #ffffff; --border: #e2e8f0;
+      --text-muted: #64748b; --brand: #0ea5e9;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a; --surface: #1e293b; --border: #334155;
+        --text-muted: #94a3b8; --brand: #38bdf8;
+      }
+      .error { background: #450a0a !important; border-color: #7f1d1d !important; }
+    }
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, sans-serif; background: #f8fafc; min-height: 100vh; }
-    nav { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 56px; }
-    .nav-logo { font-size: 18px; font-weight: 700; color: #0ea5e9; text-decoration: none; }
+    body { font-family: "Manrope", system-ui, sans-serif; background: var(--bg); min-height: 100vh; }
+    nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 56px; }
+    .nav-logo { display: inline-flex; align-items: center; gap: 10px; color: var(--text-muted); text-decoration: none; }
+    .nav-logo img { width: 26px; height: 26px; flex-shrink: 0; }
+    .nav-logo strong { font-size: 18px; font-weight: 800; letter-spacing: -.03em; color: var(--text-heading, #0f172a); }
+    .nav-link { font-size: 14px; color: var(--text-muted); text-decoration: none; }
+    .nav-link:hover { color: var(--brand); }
     .page-center { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 56px); padding: 24px; }
-    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 40px; width: 100%; max-width: 400px; text-align: center; }
-    p { color: #64748b; font-size: 14px; margin-bottom: 20px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 40px; width: 100%; max-width: 400px; text-align: center; }
+    p { color: var(--text-muted); font-size: 14px; margin-bottom: 20px; }
     .error { color: #ef4444; font-size: 14px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 12px; margin-bottom: 20px; }
-    a { color: #0ea5e9; text-decoration: none; font-weight: 500; }
+    a { color: var(--brand); text-decoration: none; font-weight: 500; }
   </style>
 </head>
 <body>
   <nav>
-    <a href="/" class="nav-logo">TaxVett</a>
+    <a href="/" class="nav-logo"><img src="/brand/logo-mark.svg" alt="" /><strong>TaxVett</strong></a>
     <div style="display:flex;gap:16px;align-items:center">
-      <a href="/signup" style="font-size:14px;color:#64748b;text-decoration:none">Get started</a>
+      <a href="/signup" class="nav-link">Get started</a>
     </div>
   </nav>
   <div class="page-center">

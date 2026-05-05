@@ -120,79 +120,107 @@ const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateStr
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard — TaxVett</title>
+  <meta name="theme-color" content="#10A6E8" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;700&family=Manrope:wght@500;700;800&display=swap" rel="stylesheet" />
   <style>
+    :root {
+      --bg: #f8fafc; --surface: #ffffff; --surface-alt: #f8fafc; --surface-alt2: #f1f5f9;
+      --border: #e2e8f0; --border-muted: #cbd5e1;
+      --text: #1e293b; --text-heading: #0f172a; --text-muted: #64748b; --text-faint: #94a3b8; --text-code: #475569;
+      --brand: #0ea5e9; --brand-hover: #0284c7; --brand-light: #bae6fd; --brand-lighter: #7dd3fc;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a; --surface: #1e293b; --surface-alt: #1e293b; --surface-alt2: #263348;
+        --border: #334155; --border-muted: #475569;
+        --text: #e2e8f0; --text-heading: #f1f5f9; --text-muted: #94a3b8; --text-faint: #64748b; --text-code: #94a3b8;
+        --brand: #38bdf8; --brand-hover: #0ea5e9; --brand-light: #075985; --brand-lighter: #0369a1;
+      }
+      .new-key-box { background: #14532d !important; border-color: #166534 !important; }
+      .new-key-box strong { color: #86efac !important; }
+      .new-key-box code { color: #f1f5f9 !important; }
+      .plan-badge { background: #0c4a6e !important; color: #7dd3fc !important; }
+      .plan-badge.pro { background: #451a03 !important; color: #fcd34d !important; }
+    }
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, sans-serif; background: #f8fafc; color: #1e293b; min-height: 100vh; }
-    nav { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 56px; }
-    .nav-logo { font-size: 18px; font-weight: 700; color: #0ea5e9; text-decoration: none; }
-    .nav-right { display: flex; gap: 16px; align-items: center; font-size: 14px; color: #64748b; }
-    nav a { color: #64748b; text-decoration: none; font-size: 14px; }
-    nav a.nav-logo { color: #0ea5e9; font-weight: 700; }
+    body { font-family: "Manrope", system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 56px; }
+    .nav-logo { display: inline-flex; align-items: center; gap: 10px; color: var(--text-heading); text-decoration: none; }
+    .nav-logo img { width: 26px; height: 26px; flex-shrink: 0; }
+    .nav-logo strong { font-size: 18px; font-weight: 800; letter-spacing: -.03em; }
+    .nav-right { display: flex; gap: 16px; align-items: center; font-size: 14px; color: var(--text-muted); }
+    nav a { color: var(--text-muted); text-decoration: none; font-size: 14px; }
+    nav a.nav-logo { color: var(--brand); font-weight: 700; }
     nav a.nav-docs { font-weight: 500; }
-    nav a.nav-docs:hover { color: #0ea5e9; }
+    nav a.nav-docs:hover { color: var(--brand); }
     main { max-width: 960px; margin: 0 auto; padding: 32px 24px; }
     h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 28px; }
-    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; }
-    .card-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #94a3b8; margin-bottom: 8px; }
-    .card-value { font-size: 28px; font-weight: 700; color: #0f172a; }
-    .card-sub { font-size: 13px; color: #64748b; margin-top: 4px; }
-    .quota-bar { height: 8px; background: #e2e8f0; border-radius: 4px; margin-top: 12px; overflow: hidden; }
-    .quota-fill { height: 100%; border-radius: 4px; background: #0ea5e9; transition: width .4s; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+    .card-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); margin-bottom: 8px; }
+    .card-value { font-size: 28px; font-weight: 700; color: var(--text-heading); }
+    .card-sub { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+    .quota-bar { height: 8px; background: var(--border); border-radius: 4px; margin-top: 12px; overflow: hidden; }
+    .quota-fill { height: 100%; border-radius: 4px; background: var(--brand); transition: width .4s; }
     .quota-fill.warning { background: #f59e0b; }
     .quota-fill.danger { background: #ef4444; }
-    .section { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 24px; margin-bottom: 24px; }
+    .section { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 24px; margin-bottom: 24px; }
     /* Bar chart */
     .chart { display: flex; align-items: flex-end; gap: 6px; height: 120px; margin-top: 8px; }
     .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
-    .bar { width: 100%; background: #bae6fd; border-radius: 4px 4px 0 0; min-height: 2px; transition: height .3s; }
-    .bar-label { font-size: 10px; color: #94a3b8; white-space: nowrap; }
-    .bar-count { font-size: 11px; color: #475569; font-weight: 600; }
+    .bar { width: 100%; background: var(--brand-light); border-radius: 4px 4px 0 0; min-height: 2px; transition: height .3s; }
+    .bar-label { font-size: 10px; color: var(--text-faint); white-space: nowrap; }
+    .bar-count { font-size: 11px; color: var(--text-code); font-weight: 600; }
     /* Countries */
-    .country-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
+    .country-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--surface-alt2); }
     .country-row:last-child { border-bottom: none; }
     .country-name { flex: 1; font-size: 14px; }
-    .country-bar-wrap { flex: 2; height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
-    .country-bar { height: 100%; background: #7dd3fc; border-radius: 4px; }
-    .country-count { font-size: 13px; font-weight: 600; color: #475569; width: 36px; text-align: right; }
+    .country-bar-wrap { flex: 2; height: 8px; background: var(--surface-alt2); border-radius: 4px; overflow: hidden; }
+    .country-bar { height: 100%; background: var(--brand-lighter); border-radius: 4px; }
+    .country-count { font-size: 13px; font-weight: 600; color: var(--text-code); width: 36px; text-align: right; }
     /* API key */
-    .key-box { display: flex; align-items: center; gap: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 14px; font-family: monospace; font-size: 14px; }
-    .key-masked { flex: 1; color: #475569; }
+    .key-box { display: flex; align-items: center; gap: 10px; background: var(--surface-alt); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; font-family: "IBM Plex Mono", monospace; font-size: 14px; }
+    .key-masked { flex: 1; color: var(--text-code); }
     .new-key-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 14px; margin-bottom: 16px; }
     .new-key-box strong { display: block; font-size: 13px; margin-bottom: 8px; color: #15803d; }
-    .new-key-box code { font-family: monospace; font-size: 13px; word-break: break-all; color: #0f172a; }
+    .new-key-box code { font-family: monospace; font-size: 13px; word-break: break-all; color: var(--text-heading); }
     .btn { padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; }
-    .btn-primary { background: #0ea5e9; color: #fff; }
-    .btn-primary:hover { background: #0284c7; }
-    .btn-danger { background: #fff; color: #ef4444; border: 1px solid #fca5a5; }
+    .btn-primary { background: var(--brand); color: #fff; }
+    .btn-primary:hover { background: var(--brand-hover); }
+    .btn-danger { background: var(--surface); color: #ef4444; border: 1px solid #fca5a5; }
     .btn-danger:hover { background: #fef2f2; }
     .btn-sm { padding: 6px 12px; font-size: 13px; }
     /* Webhooks */
-    .webhook-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+    .webhook-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--surface-alt2); }
     .webhook-row:last-child { border-bottom: none; }
-    .webhook-url { flex: 1; font-size: 13px; font-family: monospace; color: #334155; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .webhook-url { flex: 1; font-size: 13px; font-family: "IBM Plex Mono", monospace; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
     .badge-active { background: #dcfce7; color: #15803d; }
-    .badge-inactive { background: #f1f5f9; color: #94a3b8; }
+    .badge-inactive { background: var(--surface-alt); color: var(--text-faint); }
     .info-grid { display: grid; grid-template-columns: 140px 1fr; gap: 10px 0; font-size: 14px; }
-    .info-label { color: #94a3b8; font-weight: 500; }
+    .info-label { color: var(--text-faint); font-weight: 500; }
     .plan-badge { font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 20px; text-transform: uppercase; background: #e0f2fe; color: #0369a1; }
     .plan-badge.pro { background: #fef9c3; color: #854d0e; }
     form.inline { display: inline; }
     .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-    input[type="url"] { flex: 1; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+    input[type="url"] { flex: 1; padding: 8px 12px; border: 1px solid var(--border-muted); border-radius: 6px; font-size: 14px; background: var(--surface); color: var(--text); }
+    .signout-btn { background: none; border: 1px solid var(--border); cursor: pointer; font-size: 13px; color: var(--text-muted); }
     .add-form { display: flex; gap: 8px; margin-top: 16px; }
   </style>
 </head>
 <body>
   <nav>
-    <a href="/" class="nav-logo">TaxVett</a>
+    <a href="/" class="nav-logo"><img src="/brand/logo-mark.svg" alt="" /><strong>TaxVett</strong></a>
     <div class="nav-right">
       <a href="https://api.taxvett.com/docs" target="_blank" rel="noopener" class="nav-docs">API Docs</a>
       <span>{email}</span>
       <form method="POST" class="inline">
         <input type="hidden" name="action" value="logout" />
-        <button class="btn btn-sm" style="background:none;border:1px solid #e2e8f0;cursor:pointer;font-size:13px;color:#64748b">Sign out</button>
+        <button class="btn btn-sm signout-btn">Sign out</button>
       </form>
     </div>
   </nav>
