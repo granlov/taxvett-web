@@ -38,19 +38,29 @@ if (token) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sign in — TaxVett</title>
   <style>
-    body { font-family: system-ui, sans-serif; background: #f8fafc; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f8fafc; min-height: 100vh; }
+    nav { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 56px; }
+    .nav-logo { font-size: 18px; font-weight: 700; color: #0ea5e9; text-decoration: none; }
+    .page-center { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 56px); padding: 24px; }
     .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 40px; width: 100%; max-width: 400px; text-align: center; }
-    .logo { font-size: 20px; font-weight: 700; color: #0ea5e9; margin-bottom: 24px; }
     p { color: #64748b; font-size: 14px; margin-bottom: 20px; }
     .error { color: #ef4444; font-size: 14px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 12px; margin-bottom: 20px; }
     a { color: #0ea5e9; text-decoration: none; font-weight: 500; }
   </style>
 </head>
 <body>
+  <nav>
+    <a href="/" class="nav-logo">TaxVett</a>
+    <div style="display:flex;gap:16px;align-items:center">
+      <a href="/signup" style="font-size:14px;color:#64748b;text-decoration:none">Get started</a>
+    </div>
+  </nav>
+  <div class="page-center">
   <div class="card">
-    <div class="logo">TaxVett</div>
     <div class="error">{errorMessage}</div>
     <a href="/login">← Request a new login link</a>
+  </div>
   </div>
 </body>
 </html>

@@ -106,12 +106,14 @@ if (Astro.request.method === 'POST') {
     .page { max-width: 820px; margin: 0 auto; padding: 56px 24px; }
     h1 { font-size: 30px; font-weight: 800; text-align: center; margin-bottom: 8px; }
     .subtitle { text-align: center; color: #64748b; font-size: 16px; margin-bottom: 48px; }
-    .plans { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    @media (max-width: 860px) { .plans { grid-template-columns: 1fr 1fr; } }
     @media (max-width: 560px) { .plans { grid-template-columns: 1fr; } }
     .plan-card { background: #fff; border: 2px solid #e2e8f0; border-radius: 14px; padding: 28px; display: flex; flex-direction: column; }
     .plan-card.highlighted { border-color: #0ea5e9; }
     .plan-badge { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; padding: 3px 10px; border-radius: 20px; background: #e0f2fe; color: #0369a1; width: fit-content; margin-bottom: 16px; }
     .plan-badge.pro { background: #fef9c3; color: #854d0e; }
+    .plan-badge.enterprise { background: #f3e8ff; color: #6b21a8; }
     .plan-name { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
     .plan-price { font-size: 32px; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
     .plan-price span { font-size: 15px; font-weight: 500; color: #64748b; }
@@ -127,6 +129,9 @@ if (Astro.request.method === 'POST') {
     .btn-primary:hover { background: #0284c7; }
     .btn-pro { background: #0f172a; color: #fff; }
     .btn-pro:hover { background: #1e293b; }
+    .btn-enterprise { background: #6b21a8; color: #fff; }
+    .btn-enterprise:hover { background: #581c87; }
+    .btn-link { display: block; text-align: center; text-decoration: none; }
     .error { color: #ef4444; font-size: 13px; margin-bottom: 12px; }
     .login-hint { text-align: center; margin-top: 32px; font-size: 14px; color: #64748b; }
     .login-hint a { color: #0ea5e9; text-decoration: none; font-weight: 500; }
@@ -175,7 +180,7 @@ if (Astro.request.method === 'POST') {
         <div class="plan-price">{priceAmount} <span>/ {priceInterval}</span></div>
         <p class="plan-desc">For production workloads that need higher throughput and SLA.</p>
         <ul class="plan-features">
-          <li>5 000 req/month</li>
+          <li>5 000 req/month</li>
           <li>60 req/min rate limit</li>
           <li>Batch validation (up to 50)</li>
           <li>Webhook notifications</li>
@@ -186,6 +191,24 @@ if (Astro.request.method === 'POST') {
           <input type="hidden" name="action" value="checkout-pro" />
           <button type="submit" class="btn btn-pro" id="checkout-btn">Upgrade to Pro →</button>
         </form>
+      </div>
+
+      <!-- Enterprise plan -->
+      <div class="plan-card">
+        <div class="plan-badge enterprise">Enterprise</div>
+        <div class="plan-name">Scale</div>
+        <div class="plan-price">$79 <span>/ month</span></div>
+        <p class="plan-desc">Maximum throughput, guaranteed uptime, and dedicated support for demanding integrations.</p>
+        <ul class="plan-features">
+          <li>Unlimited req/month</li>
+          <li>300 req/min rate limit</li>
+          <li>Batch validation (up to 50)</li>
+          <li>Webhook notifications</li>
+          <li>99.9% SLA</li>
+          <li>Priority support</li>
+          <li>30+ countries</li>
+        </ul>
+        <a href="mailto:support@taxvett.com?subject=Enterprise%20plan" class="btn btn-enterprise btn-link">Contact us →</a>
       </div>
     </div>
 
