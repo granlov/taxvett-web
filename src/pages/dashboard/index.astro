@@ -229,7 +229,7 @@ const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateStr
 
   <main>
     <!-- Quota cards -->
-    <div class="grid">
+    <div class="grid" style="grid-template-columns: 1fr 2fr">
       <div class="card">
         <div class="card-title">Requests this month</div>
         <div class="card-value">{monthlyRequests.toLocaleString()}</div>
