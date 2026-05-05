@@ -19,6 +19,7 @@ declare module 'cloudflare:workers' {
     PUBLIC_API_BASE: string
     STRIPE_SECRET_KEY: string
     STRIPE_PRO_PRICE_ID: string
+    STRIPE_ENTERPRISE_PRICE_ID: string
     DISCORD_WEBHOOK_URL?: string
   }
   export { env }

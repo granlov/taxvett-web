@@ -8,23 +8,36 @@ import { eq } from 'drizzle-orm'
 import { apiKeys } from '../../db/schema.ts'
 import { env } from 'cloudflare:workers'
 
-const plan = (Astro.url.searchParams.get('plan') ?? 'free') as 'free' | 'pro'
+const plan = (Astro.url.searchParams.get('plan') ?? 'free') as 'free' | 'pro' | 'enterprise'
 
-// Fetch live price from Stripe
+// Fetch live prices from Stripe in parallel
 type StripePrice = { unit_amount: number | null; currency: string; recurring?: { interval: string } }
 let proPrice: StripePrice | null = null
+let enterprisePrice: StripePrice | null = null
 try {
-  const res = await fetch(`https://api.stripe.com/v1/prices/${env.STRIPE_PRO_PRICE_ID}`, {
-    headers: { Authorization: `Basic ${btoa(env.STRIPE_SECRET_KEY + ':')}` },
-    signal: AbortSignal.timeout(4000),
-  })
-  if (res.ok) proPrice = await res.json() as StripePrice
-} catch { /* fall back to placeholder */ }
+  const [proRes, entRes] = await Promise.all([
+    fetch(`https://api.stripe.com/v1/prices/${env.STRIPE_PRO_PRICE_ID}`, {
+      headers: { Authorization: `Basic ${btoa(env.STRIPE_SECRET_KEY + ':')}` },
+      signal: AbortSignal.timeout(4000),
+    }),
+    fetch(`https://api.stripe.com/v1/prices/${env.STRIPE_ENTERPRISE_PRICE_ID}`, {
+      headers: { Authorization: `Basic ${btoa(env.STRIPE_SECRET_KEY + ':')}` },
+      signal: AbortSignal.timeout(4000),
+    }),
+  ])
+  if (proRes.ok) proPrice = await proRes.json() as StripePrice
+  if (entRes.ok) enterprisePrice = await entRes.json() as StripePrice
+} catch { /* fall back to placeholders */ }
 
-const priceAmount = proPrice?.unit_amount != null
-  ? new Intl.NumberFormat('en', { style: 'currency', currency: proPrice.currency.toUpperCase(), maximumFractionDigits: 0 }).format(proPrice.unit_amount / 100)
-  : '—'
+function formatPrice(p: StripePrice | null, fallback: string): string {
+  if (p?.unit_amount == null) return fallback
+  return new Intl.NumberFormat('en', { style: 'currency', currency: p.currency.toUpperCase(), maximumFractionDigits: 0 }).format(p.unit_amount / 100)
+}
+
+const priceAmount = formatPrice(proPrice, '—')
 const priceInterval = proPrice?.recurring?.interval ?? 'month'
+const enterprisePriceAmount = formatPrice(enterprisePrice, '$79')
+const enterprisePriceInterval = enterprisePrice?.recurring?.interval ?? 'month'
 
 let error = ''
 
@@ -33,9 +46,11 @@ if (Astro.request.method === 'POST') {
   const action = String(data.get('action') ?? '')
 
   if (action === 'checkout-pro') {
-    // Redirect to Stripe Checkout via client-side form POST
-    // The actual session is created in /api/checkout
     return Astro.redirect('/api/checkout', 303)
+  }
+
+  if (action === 'checkout-enterprise') {
+    return Astro.redirect('/api/checkout-enterprise', 303)
   }
 
   // Free plan signup
@@ -227,7 +242,7 @@ if (Astro.request.method === 'POST') {
       <div class="plan-card">
         <div class="plan-badge enterprise">Enterprise</div>
         <div class="plan-name">Scale</div>
-        <div class="plan-price">$79 <span>/ month</span></div>
+        <div class="plan-price">{enterprisePriceAmount} <span>/ {enterprisePriceInterval}</span></div>
         <p class="plan-desc">Maximum throughput, guaranteed uptime, and dedicated support for demanding integrations.</p>
         <p class="plan-from">Everything in Pro, plus:</p>
         <ul class="plan-features">
@@ -236,7 +251,10 @@ if (Astro.request.method === 'POST') {
           <li>99.9% SLA</li>
           <li>Dedicated support</li>
         </ul>
-        <a href="mailto:support@taxvett.com?subject=Enterprise%20plan" class="btn btn-pro btn-link">Contact us →</a>
+        <form method="POST" id="checkout-enterprise-form">
+          <input type="hidden" name="action" value="checkout-enterprise" />
+          <button type="submit" class="btn btn-pro" id="checkout-enterprise-btn">Upgrade to Scale →</button>
+        </form>
       </div>
     </div>
 
@@ -262,6 +280,25 @@ if (Astro.request.method === 'POST') {
         alert('Something went wrong. Please try again.')
       }
     })
+    // Enterprise checkout
+    const enterpriseForm = document.getElementById('checkout-enterprise-form') as HTMLFormElement
+    const enterpriseBtn = document.getElementById('checkout-enterprise-btn') as HTMLButtonElement
+    enterpriseForm?.addEventListener('submit', async (e) => {
+      e.preventDefault()
+      enterpriseBtn.disabled = true
+      enterpriseBtn.textContent = 'Redirecting…'
+      try {
+        const res = await fetch('/api/checkout-enterprise', { method: 'POST' })
+        const data = await res.json() as { url?: string; error?: string }
+        if (!res.ok || !data.url) throw new Error(data.error ?? 'No URL returned')
+        window.location.href = data.url
+      } catch {
+        enterpriseBtn.disabled = false
+        enterpriseBtn.textContent = 'Upgrade to Scale →'
+        alert('Something went wrong. Please try again.')
+      }
+    })
+
     // Free plan CTA toggle
     const freeCta = document.getElementById('free-cta') as HTMLButtonElement | null
     const emailSection = document.getElementById('email-section') as HTMLDivElement | null
