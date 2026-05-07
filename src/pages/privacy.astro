@@ -1,0 +1,173 @@
+---
+// Privacy Policy — taxvett.com/privacy
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — TaxVett</title>
+  <meta name="description" content="How TaxVett collects and processes personal data." />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #ffffff; --surface: #ffffff; --surface-alt: #f8fafc; --surface-alt2: #f1f5f9;
+      --border: #e2e8f0; --text: #1e293b; --text-heading: #0f172a; --text-muted: #64748b; --text-faint: #94a3b8;
+      --brand: #0ea5e9; --brand-hover: #0284c7;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a; --surface: #1e293b; --surface-alt: #1e293b; --surface-alt2: #263348;
+        --border: #334155; --text: #e2e8f0; --text-heading: #f1f5f9; --text-muted: #94a3b8; --text-faint: #64748b;
+        --brand: #38bdf8; --brand-hover: #0ea5e9;
+      }
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Manrope", system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 60px; border-bottom: 1px solid var(--border); max-width: 1100px; margin: 0 auto; }
+    .logo { display: inline-flex; align-items: center; gap: 10px; color: var(--text-heading); text-decoration: none; }
+    .logo img { width: 28px; height: 28px; flex-shrink: 0; }
+    .logo strong { font-size: 20px; font-weight: 800; letter-spacing: -.03em; }
+    .nav-links { display: flex; gap: 24px; align-items: center; }
+    .nav-links a { font-size: 14px; color: var(--text-muted); text-decoration: none; }
+    .nav-links a:hover { color: var(--brand); }
+
+    .page { max-width: 720px; margin: 0 auto; padding: 60px 24px 80px; }
+    .page-header { margin-bottom: 48px; }
+    .page-header h1 { font-size: 36px; font-weight: 800; color: var(--text-heading); margin-bottom: 8px; }
+    .page-header p { font-size: 15px; color: var(--text-muted); }
+
+    h2 { font-size: 20px; font-weight: 700; color: var(--text-heading); margin: 40px 0 12px; }
+    h3 { font-size: 16px; font-weight: 700; color: var(--text-heading); margin: 24px 0 8px; }
+    p { font-size: 15px; line-height: 1.7; color: var(--text); margin-bottom: 16px; }
+    ul { margin: 0 0 16px 20px; }
+    li { font-size: 15px; line-height: 1.7; color: var(--text); margin-bottom: 4px; }
+    a { color: var(--brand); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .callout { background: var(--surface-alt); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; margin: 24px 0; }
+    .callout p { margin: 0; font-size: 14px; color: var(--text-muted); }
+
+    table { width: 100%; border-collapse: collapse; margin: 16px 0 24px; font-size: 14px; }
+    th { text-align: left; padding: 10px 12px; background: var(--surface-alt); font-weight: 700; color: var(--text-heading); border-bottom: 2px solid var(--border); }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+
+    footer { text-align: center; padding: 32px 24px; font-size: 13px; color: var(--text-faint); border-top: 1px solid var(--border); }
+    footer a { color: var(--text-faint); text-decoration: none; }
+    footer a:hover { color: var(--brand); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">
+    <img src="/brand/logo-mark.svg" alt="" />
+    <strong>TaxVett</strong>
+  </a>
+  <div class="nav-links">
+    <a href="https://api.taxvett.com/docs" target="_blank" rel="noopener">API Docs</a>
+    <a href="/login">Log in</a>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <h1>Privacy Policy</h1>
+    <p>Last updated: 5 May 2026</p>
+  </div>
+
+  <div class="callout">
+    <p>TaxVett is a developer API for validating tax numbers. We collect only what is necessary to operate the service and never sell personal data to third parties.</p>
+  </div>
+
+  <h2>1. Data controller</h2>
+  <p>The data controller for personal data processed in connection with TaxVett is the operator of TaxVett, reachable at <a href="mailto:support@taxvett.com">support@taxvett.com</a>.</p>
+
+  <h2>2. What data we collect</h2>
+
+  <h3>Account data</h3>
+  <ul>
+    <li><strong>Email address</strong> — collected when you sign up or log in via magic link. Used to identify your account, send login links, and for billing if you upgrade to a paid plan.</li>
+    <li><strong>API key</strong> — we store a one-way hash of your API key, never the key itself.</li>
+    <li><strong>Plan and subscription status</strong> — free, pro, or enterprise, along with payment-provider customer and subscription IDs for paid accounts.</li>
+  </ul>
+
+  <h3>Usage data</h3>
+  <ul>
+    <li><strong>Request logs</strong> — each API call records: a timestamp, the detected country code, the endpoint called, and the response status (valid/invalid/error). The tax number itself is not stored.</li>
+    <li><strong>Usage counters</strong> — aggregate request counts per API key, used to enforce rate limits and display dashboard statistics.</li>
+  </ul>
+
+  <h3>Technical data</h3>
+  <ul>
+    <li>IP addresses are processed in-flight for routing and abuse prevention but are not stored by TaxVett.</li>
+    <li>Standard HTTP request metadata (user-agent, referer) is not logged by TaxVett.</li>
+  </ul>
+
+  <h2>3. Legal basis for processing</h2>
+
+  <table>
+    <tr><th>Purpose</th><th>Legal basis (GDPR Art. 6)</th></tr>
+    <tr><td>Providing the API service and managing your account</td><td>Performance of a contract (Art. 6(1)(b))</td></tr>
+    <tr><td>Sending magic-link login emails</td><td>Performance of a contract (Art. 6(1)(b))</td></tr>
+    <tr><td>Processing payments via Stripe</td><td>Performance of a contract (Art. 6(1)(b))</td></tr>
+    <tr><td>Aggregate usage analytics (dashboard statistics)</td><td>Legitimate interests (Art. 6(1)(f))</td></tr>
+    <tr><td>Abuse detection and rate limiting</td><td>Legitimate interests (Art. 6(1)(f))</td></tr>
+  </table>
+
+  <h2>4. Data processors (sub-processors)</h2>
+  <p>We use the following third-party services to operate TaxVett. Each acts as a data processor under our instructions and is bound by appropriate data protection agreements.</p>
+
+  <table>
+    <tr><th>Service</th><th>Purpose</th><th>Data region</th></tr>
+    <tr><td><a href="https://www.cloudflare.com" target="_blank" rel="noopener">Cloudflare</a></td><td>Edge network and request routing</td><td>Global edge (in-transit only — no long-term storage)</td></tr>
+    <tr><td><a href="https://neon.tech" target="_blank" rel="noopener">Neon</a></td><td>Account and API key storage</td><td>EU</td></tr>
+    <tr><td><a href="https://upstash.com" target="_blank" rel="noopener">Upstash</a></td><td>Usage counters and short-term cache</td><td>EU</td></tr>
+    <tr><td><a href="https://stripe.com" target="_blank" rel="noopener">Stripe</a></td><td>Payment processing and subscription management</td><td>EU/US — see <a href="https://stripe.com/privacy" target="_blank" rel="noopener">Stripe Privacy Policy</a></td></tr>
+    <tr><td><a href="https://resend.com" target="_blank" rel="noopener">Resend</a></td><td>Transactional email (login links)</td><td>EU</td></tr>
+  </table>
+
+  <h2>5. Data retention</h2>
+  <ul>
+    <li><strong>Account data</strong> — retained while your account is active. If you request deletion, account data is removed within 30 days.</li>
+    <li><strong>Usage counters</strong> — rolling 30-day window, then discarded automatically.</li>
+    <li><strong>Request logs</strong> — retained for 90 days, then deleted automatically.</li>
+    <li><strong>Billing records</strong> — invoices and payment records managed by our payment provider are retained for 7 years to comply with accounting requirements.</li>
+  </ul>
+
+  <h2>6. Your rights under GDPR</h2>
+  <p>If you are located in the EU or EEA, you have the following rights regarding your personal data:</p>
+  <ul>
+    <li><strong>Access</strong> — request a copy of the personal data we hold about you.</li>
+    <li><strong>Rectification</strong> — request correction of inaccurate data.</li>
+    <li><strong>Erasure</strong> — request deletion of your account and associated data.</li>
+    <li><strong>Restriction</strong> — request that we limit how we process your data.</li>
+    <li><strong>Portability</strong> — receive your data in a machine-readable format.</li>
+    <li><strong>Objection</strong> — object to processing based on legitimate interests.</li>
+  </ul>
+  <p>To exercise any of these rights, email <a href="mailto:support@taxvett.com">support@taxvett.com</a>. We will respond within 30 days. You also have the right to lodge a complaint with your local supervisory authority.</p>
+
+  <h2>7. Cookies and tracking</h2>
+  <p>TaxVett does not use tracking cookies, analytics scripts, or ad networks. The only session state used is a short-lived login token stored in a secure cookie for authenticated dashboard sessions.</p>
+
+  <h2>8. International transfers</h2>
+  <p>Stripe may transfer billing data to the United States. Stripe uses Standard Contractual Clauses approved by the European Commission as the legal mechanism for such transfers. All other primary data storage is in the EU.</p>
+
+  <h2>9. Changes to this policy</h2>
+  <p>We may update this policy as the service evolves. Material changes will be announced via email to registered users. The current version is always available at <a href="/privacy">taxvett.com/privacy</a>.</p>
+
+  <h2>10. Contact</h2>
+  <p>Questions about this privacy policy or your personal data? Email us at <a href="mailto:support@taxvett.com">support@taxvett.com</a>.</p>
+</div>
+
+<footer>
+  <p>© 2026 TaxVett · <a href="/">Home</a> · <a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Service</a> · <a href="https://api.taxvett.com/docs">API Docs</a></p>
+</footer>
+
+</body>
+</html>

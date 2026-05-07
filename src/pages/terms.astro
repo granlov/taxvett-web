@@ -1,0 +1,153 @@
+---
+// Terms of Service — taxvett.com/terms
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Terms of Service — TaxVett</title>
+  <meta name="description" content="Terms and conditions for using the TaxVett API." />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #ffffff; --surface: #ffffff; --surface-alt: #f8fafc; --surface-alt2: #f1f5f9;
+      --border: #e2e8f0; --text: #1e293b; --text-heading: #0f172a; --text-muted: #64748b; --text-faint: #94a3b8;
+      --brand: #0ea5e9; --brand-hover: #0284c7;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a; --surface: #1e293b; --surface-alt: #1e293b; --surface-alt2: #263348;
+        --border: #334155; --text: #e2e8f0; --text-heading: #f1f5f9; --text-muted: #94a3b8; --text-faint: #64748b;
+        --brand: #38bdf8; --brand-hover: #0ea5e9;
+      }
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Manrope", system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 60px; border-bottom: 1px solid var(--border); max-width: 1100px; margin: 0 auto; }
+    .logo { display: inline-flex; align-items: center; gap: 10px; color: var(--text-heading); text-decoration: none; }
+    .logo img { width: 28px; height: 28px; flex-shrink: 0; }
+    .logo strong { font-size: 20px; font-weight: 800; letter-spacing: -.03em; }
+    .nav-links { display: flex; gap: 24px; align-items: center; }
+    .nav-links a { font-size: 14px; color: var(--text-muted); text-decoration: none; }
+    .nav-links a:hover { color: var(--brand); }
+
+    .page { max-width: 720px; margin: 0 auto; padding: 60px 24px 80px; }
+    .page-header { margin-bottom: 48px; }
+    .page-header h1 { font-size: 36px; font-weight: 800; color: var(--text-heading); margin-bottom: 8px; }
+    .page-header p { font-size: 15px; color: var(--text-muted); }
+
+    h2 { font-size: 20px; font-weight: 700; color: var(--text-heading); margin: 40px 0 12px; }
+    h3 { font-size: 16px; font-weight: 700; color: var(--text-heading); margin: 24px 0 8px; }
+    p { font-size: 15px; line-height: 1.7; color: var(--text); margin-bottom: 16px; }
+    ul { margin: 0 0 16px 20px; }
+    li { font-size: 15px; line-height: 1.7; color: var(--text); margin-bottom: 4px; }
+    a { color: var(--brand); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .callout { background: var(--surface-alt); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; margin: 24px 0; }
+    .callout p { margin: 0; font-size: 14px; color: var(--text-muted); }
+
+    table { width: 100%; border-collapse: collapse; margin: 16px 0 24px; font-size: 14px; }
+    th { text-align: left; padding: 10px 12px; background: var(--surface-alt); font-weight: 700; color: var(--text-heading); border-bottom: 2px solid var(--border); }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+
+    footer { text-align: center; padding: 32px 24px; font-size: 13px; color: var(--text-faint); border-top: 1px solid var(--border); }
+    footer a { color: var(--text-faint); text-decoration: none; }
+    footer a:hover { color: var(--brand); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">
+    <img src="/brand/logo-mark.svg" alt="" />
+    <strong>TaxVett</strong>
+  </a>
+  <div class="nav-links">
+    <a href="https://api.taxvett.com/docs" target="_blank" rel="noopener">API Docs</a>
+    <a href="/login">Log in</a>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <h1>Terms of Service</h1>
+    <p>Last updated: 5 May 2026</p>
+  </div>
+
+  <div class="callout">
+    <p>By creating an account or using the TaxVett API, you agree to these terms. Please read them carefully before using the service.</p>
+  </div>
+
+  <h2>1. The service</h2>
+  <p>TaxVett provides an API for validating tax identification numbers (EU VAT numbers, UK tax numbers, Australian ABNs, Norwegian organisation numbers, and Singapore tax IDs) and related developer tooling including documentation, SDKs, and a usage dashboard.</p>
+
+  <h2>2. Accounts</h2>
+  <p>You must provide a valid email address to create an account. You are responsible for keeping your API key confidential. If you suspect your key has been compromised, regenerate it immediately from your dashboard. You may not share your API key with third parties or use it to build a competing tax validation API.</p>
+  <p>You must be at least 18 years old (or the age of legal majority in your jurisdiction) to use TaxVett.</p>
+
+  <h2>3. Plans and rate limits</h2>
+  <p>TaxVett offers the following plans. Rate limits are enforced using a sliding-window algorithm and excess requests receive a <code>429 Too Many Requests</code> response.</p>
+
+  <table>
+    <tr><th>Plan</th><th>Requests / day</th><th>Requests / minute</th><th>Batch size</th></tr>
+    <tr><td>Free</td><td>100</td><td>10</td><td>Up to 10</td></tr>
+    <tr><td>Pro</td><td>10,000</td><td>60</td><td>Up to 50</td></tr>
+    <tr><td>Enterprise</td><td>Unlimited</td><td>300</td><td>Up to 50</td></tr>
+  </table>
+
+  <p>We reserve the right to adjust rate limits with reasonable notice to maintain service quality for all users.</p>
+
+  <h2>4. Payment and billing</h2>
+  <p>Paid plans (Pro, Enterprise) are billed monthly through Stripe. Prices are shown at checkout and may include applicable taxes. Subscriptions auto-renew unless cancelled. You may cancel at any time from your dashboard; cancellation takes effect at the end of the current billing period.</p>
+  <p>All payments are processed by Stripe, Inc. By subscribing to a paid plan you also agree to <a href="https://stripe.com/legal" target="_blank" rel="noopener">Stripe's Terms of Service</a>. TaxVett does not store your full payment card details.</p>
+  <p>We do not offer refunds except where required by applicable law.</p>
+
+  <h2>5. Acceptable use</h2>
+  <p>You may use TaxVett to validate tax numbers in your own products and services. The following uses are prohibited:</p>
+  <ul>
+    <li>Reselling or sublicensing API access to third parties as a standalone product.</li>
+    <li>Using TaxVett to build a competing tax validation API or data service.</li>
+    <li>Automated scraping of business registry data beyond your plan's rate limits.</li>
+    <li>Using the API in connection with fraud, money laundering, or any unlawful purpose.</li>
+    <li>Attempting to reverse-engineer, exploit, or interfere with TaxVett's infrastructure.</li>
+  </ul>
+
+  <h2>6. Accuracy and upstream data</h2>
+  <p>TaxVett retrieves validation data from third-party government sources (EU VIES, UK HMRC, Australian ABR, Norwegian Brønnøysund Register, Singapore IRAS). We relay their responses as faithfully as possible, but we do not guarantee the accuracy, completeness, or timeliness of validation results. A "valid" result reflects the status at the time of the query from the upstream source.</p>
+  <p>You should not rely solely on TaxVett results to make binding legal or financial decisions without independent verification.</p>
+
+  <h2>7. Service availability</h2>
+  <p>We aim for high availability but do not guarantee any specific uptime for Free or Pro plans. Enterprise plans include a 99.9% monthly uptime SLA with details agreed at signup. In all cases, TaxVett is not liable for downtime of third-party upstream registries.</p>
+
+  <h2>8. Intellectual property</h2>
+  <p>All code, documentation, and branding associated with TaxVett are owned by the operator. Validation responses contain data from public government registers and are not subject to copyright by TaxVett.</p>
+
+  <h2>9. Limitation of liability</h2>
+  <p>To the maximum extent permitted by applicable law, TaxVett is provided "as is" without warranty of any kind. In no event shall TaxVett be liable for indirect, incidental, special, or consequential damages, including lost profits or business interruption, arising from your use of the service. TaxVett's total liability for any claim arising from these terms shall not exceed the amount you paid us in the 12 months preceding the claim.</p>
+
+  <h2>10. Termination</h2>
+  <p>You may delete your account at any time by emailing <a href="mailto:support@taxvett.com">support@taxvett.com</a>. We may suspend or terminate accounts that violate these terms, with or without notice for serious violations. On termination, your API key is immediately revoked and your data is deleted within 30 days.</p>
+
+  <h2>11. Changes to these terms</h2>
+  <p>We may update these terms from time to time. We will notify registered users by email before material changes take effect. Continued use of TaxVett after the effective date constitutes acceptance of the updated terms.</p>
+
+  <h2>12. Governing law and disputes</h2>
+  <p>These terms are governed by the laws of Sweden. Any disputes shall be resolved in the courts of Sweden, unless otherwise required by mandatory consumer protection law in your jurisdiction.</p>
+
+  <h2>13. Contact</h2>
+  <p>Questions about these terms? Email <a href="mailto:support@taxvett.com">support@taxvett.com</a>.</p>
+</div>
+
+<footer>
+  <p>© 2026 TaxVett · <a href="/">Home</a> · <a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Service</a> · <a href="https://api.taxvett.com/docs">API Docs</a></p>
+</footer>
+
+</body>
+</html>

@@ -15,6 +15,14 @@ if (token) {
   const apiKeyId = await verifyMagicToken(redis, token)
   if (apiKeyId) {
     const sessionId = await createSession(redis, apiKeyId)
+
+    // Move first-time raw key to session-scoped flash (one-time, 5 min)
+    const firstKey = await redis.get<string>(`newkey:${apiKeyId}`)
+    if (firstKey !== null) {
+      await redis.del(`newkey:${apiKeyId}`)
+      await redis.set(`flash:key:${sessionId}`, firstKey, 5 * 60)
+    }
+
     Astro.cookies.set('session', sessionId, {
       path: '/',
       httpOnly: true,

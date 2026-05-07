@@ -1,5 +1,7 @@
 ---
 // Landing page — taxvett.com
+import { env } from 'cloudflare:workers'
+const freeOpen = env.FREE_OPEN === 'true'
 ---
 
 <!DOCTYPE html>
@@ -101,6 +103,16 @@
     .flags { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; font-size: 13px; }
     .flag-item { display: flex; align-items: center; gap: 6px; background: var(--surface-alt); border: 1px solid var(--border); border-radius: 20px; padding: 5px 12px; }
 
+    .trust { max-width: 1100px; margin: 0 auto; padding: 72px 24px; }
+    .trust h2 { font-size: 28px; font-weight: 800; text-align: center; margin-bottom: 48px; }
+    .trust-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 24px; }
+    .trust-card { background: var(--surface-alt); border: 1px solid var(--border); border-radius: 10px; padding: 24px; }
+    .trust-card .icon { font-size: 26px; margin-bottom: 12px; }
+    .trust-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+    .trust-card p { font-size: 14px; color: var(--text-muted); line-height: 1.6; margin: 0; }
+    .trust-card a { color: var(--brand); text-decoration: none; }
+    .trust-card a:hover { text-decoration: underline; }
+
     .cta { background: var(--brand); color: #fff; text-align: center; padding: 72px 24px; }
     .cta h2 { font-size: 32px; font-weight: 800; margin-bottom: 12px; }
     .cta p { font-size: 16px; opacity: .9; margin-bottom: 28px; }
@@ -144,6 +156,9 @@
       <button class="example-btn" data-value="SE556016068001">🇸🇪 SE556016068001</button>
       <button class="example-btn" data-value="923609016MVA">🇳🇴 923609016MVA</button>
       <button class="example-btn" data-value="M90373944A">🇸🇬 M90373944A</button>
+      <button class="example-btn" data-value="GB123456789">🇬🇧 GB123456789</button>
+      <button class="example-btn" data-value="51824753556">🇦🇺 51824753556</button>
+      <button class="example-btn" data-value="DE118501700">🇩🇪 DE118501700</button>
     </div>
     <div class="demo-input-row">
       <input
@@ -210,14 +225,52 @@
   </div>
 </section>
 
+<section>
+  <div class="trust">
+    <h2>Built to be trusted</h2>
+    <div class="trust-grid">
+      <div class="trust-card">
+        <div class="icon">🌐</div>
+        <h3>Cloudflare edge network</h3>
+        <p>Every request is handled by a Cloudflare Worker running in the data centre closest to the caller — typically under 50 ms anywhere in the world.</p>
+      </div>
+      <div class="trust-card">
+        <div class="icon">🔐</div>
+        <h3>Zero tax number storage</h3>
+        <p>Tax numbers you send for validation are never stored. We log only the country code, result status, and a timestamp — nothing that identifies the number itself.</p>
+      </div>
+      <div class="trust-card">
+        <div class="icon">💳</div>
+        <h3>Stripe-powered billing</h3>
+        <p>Subscriptions and payments are handled entirely by Stripe. We never see or store your card details.</p>
+      </div>
+      <div class="trust-card">
+        <div class="icon">📋</div>
+        <h3>GDPR-ready</h3>
+        <p>Primary data storage is in the EU. We collect only what's needed to run the service. Full details in our <a href="/privacy">Privacy Policy</a>.</p>
+      </div>
+      <div class="trust-card">
+        <div class="icon">🛠️</div>
+        <h3>Built by a developer, for developers</h3>
+        <p>TaxVett is an independently built and maintained project — no VC funding, no bloat. It exists because no single API reliably covered EU, UK, AU, NO, and SG tax numbers.</p>
+      </div>
+      <div class="trust-card">
+        <div class="icon">📬</div>
+        <h3>Direct support</h3>
+        <p>Questions, issues, or enterprise enquiries: <a href="mailto:support@taxvett.com">support@taxvett.com</a>. No ticket system, no bots — you talk directly to the person who built it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="cta">
   <h2>Start validating in minutes</h2>
-  <p>Free plan included. No credit card required.</p>
+  <p>{freeOpen ? 'Free plan included. No credit card required.' : 'Pro plan available. Get started today.'}</p>
   <a href="/signup" class="btn-white">Get your API key →</a>
 </section>
 
 <footer>
-  <p>© 2026 TaxVett · <a href="https://api.taxvett.com/docs">API Docs</a> · <a href="https://api.taxvett.com/llms.txt">llms.txt</a></p>
+  <p>© 2026 TaxVett · <a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Service</a> · <a href="https://api.taxvett.com/docs">API Docs</a> · <a href="https://api.taxvett.com/llms.txt">llms.txt</a></p>
 </footer>
 
 <script>

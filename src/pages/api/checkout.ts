@@ -8,7 +8,7 @@ export const POST: APIRoute = async ({ url }) => {
   body.set('mode', 'subscription')
   body.set('line_items[0][price]', env.STRIPE_PRO_PRICE_ID)
   body.set('line_items[0][quantity]', '1')
-  body.set('success_url', `${origin}/login?welcome=1`)
+  body.set('success_url', `${origin}/dashboard?upgraded=1`)
   body.set('cancel_url', `${origin}/signup`)
   body.set('allow_promotion_codes', 'true')
   body.set('billing_address_collection', 'required')

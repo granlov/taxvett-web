@@ -110,6 +110,9 @@ if (Astro.request.method === 'POST') {
     .no-mail { margin-top: 12px; padding: 10px 14px; background: var(--surface-alt); border: 1px solid var(--border); border-radius: 6px; font-size: 13px; color: var(--text-muted); }
     .no-mail a { color: var(--brand); text-decoration: none; font-weight: 500; }
     .no-mail a:hover { text-decoration: underline; }
+    .resend-btn { background: none; border: 1px solid var(--border-muted); border-radius: 6px; padding: 8px 14px; font-size: 13px; color: var(--text-muted); cursor: pointer; }
+    .resend-btn:hover { border-color: var(--brand); color: var(--brand); }
+    .resend-btn:disabled { opacity: .5; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -149,13 +152,17 @@ if (Astro.request.method === 'POST') {
             : <span>Address not recognised? <a href="/signup">Create an account</a> or <a href="mailto:support@taxvett.com">contact support</a>.</span>
           }
         </div>
+        <form method="POST" id="resend-form" style="margin-top:14px">
+          <input type="hidden" name="email" id="resend-email" value="" />
+          <button type="button" id="resend-btn" class="resend-btn">Resend link</button>
+        </form>
       </div>
     ) : (
       <form method="POST" id="login-form">
         <label for="email">Email address</label>
-        <input type="email" id="email" name="email" placeholder="you@company.com" required autofocus />
+        <input type="email" id="email" name="email" placeholder="you@company.com" required autocomplete="email" autofocus />
         {error && <p class="error">{error}</p>}
-        <button type="submit">Send login link</button>
+        <button type="submit" id="submit-btn">Send login link</button>
       </form>
     )}
     <p style="margin-top:20px;font-size:13px;text-align:center;color:#94a3b8">
@@ -164,17 +171,63 @@ if (Astro.request.method === 'POST') {
   </div>
   </div>
   <script>
-    const input = document.getElementById('email');
-    if (input) {
-      input.addEventListener('keydown', function(e) {
+    const form = document.getElementById('login-form')
+    const submitBtn = document.getElementById('submit-btn')
+    const emailInput = document.getElementById('email')
+
+    if (form && submitBtn) {
+      form.addEventListener('submit', function () {
+        submitBtn.setAttribute('disabled', 'true')
+        submitBtn.textContent = 'Sending…'
+      })
+    }
+
+    // Resend link: re-use the email entered before success
+    const resendBtn = document.getElementById('resend-btn')
+    const resendEmail = document.getElementById('resend-email')
+    const resendForm = document.getElementById('resend-form')
+    if (resendBtn && resendEmail && resendForm) {
+      // Restore email from sessionStorage set before submit
+      const storedEmail = sessionStorage.getItem('login_email')
+      if (storedEmail) resendEmail.value = storedEmail
+
+      resendBtn.addEventListener('click', async () => {
+        if (!resendEmail.value) return
+        resendBtn.setAttribute('disabled', 'true')
+        resendBtn.textContent = 'Sending…'
+        try {
+          const fd = new FormData()
+          fd.set('email', resendEmail.value)
+          await fetch('/login', { method: 'POST', body: fd })
+          resendBtn.textContent = 'Sent!'
+          setTimeout(() => {
+            resendBtn.removeAttribute('disabled')
+            resendBtn.textContent = 'Resend link'
+          }, 3000)
+        } catch {
+          resendBtn.removeAttribute('disabled')
+          resendBtn.textContent = 'Resend link'
+        }
+      })
+    }
+
+    // Store email before submit so resend can use it
+    if (form && emailInput) {
+      form.addEventListener('submit', function () {
+        sessionStorage.setItem('login_email', emailInput.value)
+      })
+    }
+
+    if (emailInput) {
+      emailInput.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') {
-          e.preventDefault();
-          const loginForm = document.getElementById('login-form');
+          e.preventDefault()
+          const loginForm = document.getElementById('login-form')
           if (loginForm instanceof HTMLFormElement) {
-            loginForm.requestSubmit();
+            loginForm.requestSubmit()
           }
         }
-      });
+      })
     }
   </script>
 </body>

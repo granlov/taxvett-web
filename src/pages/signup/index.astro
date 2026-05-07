@@ -1,14 +1,16 @@
 ---
-import { getDb } from '../../lib/db.ts'
-import { getRedis } from '../../lib/redis.ts'
-import { hashApiKey, generateApiKey } from '../../lib/crypto.ts'
-import { generateMagicToken, checkMagicLinkRateLimit } from '../../lib/auth.ts'
-import { sendMagicLinkEmail } from '../../lib/email.ts'
-import { eq } from 'drizzle-orm'
-import { apiKeys } from '../../db/schema.ts'
 import { env } from 'cloudflare:workers'
 
-const plan = (Astro.url.searchParams.get('plan') ?? 'free') as 'free' | 'pro' | 'enterprise'
+const freeOpen = env.FREE_OPEN === 'true'
+const proOpen = env.PRO_OPEN === 'true'
+
+// Handle Free signup form error params
+const signupError = Astro.url.searchParams.get('error')
+const signupErrorMessage =
+  signupError === 'invalid-email' ? 'Please enter a valid email address.' :
+  signupError === 'rate-limit' ? 'Too many attempts. Please wait a few minutes.' :
+  signupError === 'server' ? 'Something went wrong. Please try again.' :
+  null
 
 // Fetch live prices from Stripe in parallel
 type StripePrice = { unit_amount: number | null; currency: string; recurring?: { interval: string } }
@@ -34,74 +36,10 @@ function formatPrice(p: StripePrice | null, fallback: string): string {
   return new Intl.NumberFormat('en', { style: 'currency', currency: p.currency.toUpperCase(), maximumFractionDigits: 0 }).format(p.unit_amount / 100)
 }
 
-const priceAmount = formatPrice(proPrice, '—')
+const priceAmount = formatPrice(proPrice, '$29')
 const priceInterval = proPrice?.recurring?.interval ?? 'month'
 const enterprisePriceAmount = formatPrice(enterprisePrice, '$79')
 const enterprisePriceInterval = enterprisePrice?.recurring?.interval ?? 'month'
-
-let error = ''
-
-if (Astro.request.method === 'POST') {
-  const data = await Astro.request.formData()
-  const action = String(data.get('action') ?? '')
-
-  if (action === 'checkout-pro') {
-    return Astro.redirect('/api/checkout', 303)
-  }
-
-  if (action === 'checkout-enterprise') {
-    return Astro.redirect('/api/checkout-enterprise', 303)
-  }
-
-  // Free plan signup
-  const email = String(data.get('email') ?? '').trim().toLowerCase()
-
-  if (!email || !email.includes('@')) {
-    error = 'Please enter a valid email address.'
-  } else {
-    const db = getDb(env.DATABASE_URL)
-    const redis = getRedis(env.UPSTASH_REDIS_REST_URL, env.UPSTASH_REDIS_REST_TOKEN)
-
-    const allowed = await checkMagicLinkRateLimit(redis, email)
-    if (!allowed) {
-      error = 'Too many attempts. Please wait a few minutes and try again.'
-    } else {
-      let keyRow = await db.query.apiKeys.findFirst({
-        where: eq(apiKeys.email, email),
-        columns: { id: true },
-      })
-
-      if (!keyRow) {
-        // New account — create free API key
-        const rawKey = await generateApiKey()
-        const keyHash = await hashApiKey(rawKey, env.API_KEY_SALT)
-        const [inserted] = await db
-          .insert(apiKeys)
-          .values({ keyHash, plan: 'free', email })
-          .returning({ id: apiKeys.id })
-        keyRow = inserted
-        if (env.DISCORD_WEBHOOK_URL) {
-          fetch(env.DISCORD_WEBHOOK_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: `👤 **Ny free-signup** — \`${email}\`` }),
-            signal: AbortSignal.timeout(5000),
-          }).catch(() => {})
-        }
-      }
-
-      const token = await generateMagicToken(redis, keyRow.id)
-      const magicLink = `${Astro.url.origin}/login/callback?token=${token}`
-      await sendMagicLinkEmail({
-        to: email,
-        magicLink,
-        resendApiKey: env.RESEND_API_KEY,
-      })
-
-      return Astro.redirect('/signup/success')
-    }
-  }
-}
 ---
 
 <!DOCTYPE html>
@@ -133,7 +71,7 @@ if (Astro.request.method === 'POST') {
       .plan-badge.pro { background: #451a03 !important; color: #fcd34d !important; }
       .plan-badge.enterprise { background: #3b0764 !important; color: #d8b4fe !important; }
       .btn-pro { background: #e2e8f0 !important; color: #0f172a !important; }
-      .btn-pro:hover { background: #f1f5f9 !important; }
+      .coming-soon-pill { background: rgba(56,189,248,.1) !important; border-color: rgba(56,189,248,.3) !important; color: #38bdf8 !important; }
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -162,23 +100,19 @@ if (Astro.request.method === 'POST') {
     .plan-desc { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.6; }
     .plan-features { list-style: none; margin-bottom: 28px; flex: 1; }
     .plan-features li { font-size: 14px; padding: 5px 0; display: flex; align-items: center; gap: 8px; color: var(--text-body); }
-    .plan-features li::before { content: '✓'; color: var(--brand); font-weight: 700; flex-shrink: 0; }
-    label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; }
-    input[type="email"] { width: 100%; padding: 10px 12px; border: 1px solid var(--border-muted); border-radius: 6px; font-size: 15px; outline: none; margin-bottom: 12px; background: var(--surface); color: var(--text); }
-    input[type="email"]:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(14,165,233,.15); }
-    .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; }
-    .btn-primary { background: var(--brand); color: #fff; }
-    .btn-primary:hover { background: var(--brand-hover); }
-    .btn-pro { background: #0f172a; color: #fff; }
-    .btn-pro:hover { background: #1e293b; }
+    .plan-features li::before { content: "✓"; color: var(--brand); font-weight: 700; flex-shrink: 0; }
+    .plan-from { font-size: 12px; color: var(--text-muted); font-style: italic; margin-bottom: 8px; }
+    .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; text-align: center; display: block; text-decoration: none; box-sizing: border-box; }
     .btn-enterprise { background: #6b21a8; color: #fff; }
     .btn-enterprise:hover { background: #581c87; }
-    .btn-link { display: block; text-align: center; text-decoration: none; }
-    .plan-from { font-size: 12px; color: var(--text-faint); font-style: italic; margin-bottom: 8px; }
-    .error { color: #ef4444; font-size: 13px; margin-bottom: 12px; }
+    .coming-soon-pill { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 11px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; background: rgba(14,165,233,.08); border: 1px dashed rgba(14,165,233,.35); color: var(--brand); }
+    .coming-soon-pill span { font-family: "IBM Plex Mono", monospace; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; opacity: .8; }
     .login-hint { text-align: center; margin-top: 32px; font-size: 14px; color: var(--text-muted); }
     .login-hint a { color: var(--brand); text-decoration: none; font-weight: 500; }
     .login-hint a:hover { text-decoration: underline; }
+    .legal-hint { text-align: center; margin-top: 16px; font-size: 12px; color: var(--text-muted); }
+    .legal-hint a { color: var(--text-muted); text-decoration: underline; }
+    .error-msg { color: #ef4444; font-size: 13px; margin-bottom: 8px; }
   </style>
 </head>
 <body>
@@ -208,15 +142,15 @@ if (Astro.request.method === 'POST') {
           <li>30+ countries</li>
           <li>Dashboard &amp; API key management</li>
         </ul>
-        <button type="button" id="free-cta" class="btn btn-primary" style={error ? 'display:none' : ''}>Get started free →</button>
-        <div id="email-section" style={error ? '' : 'display:none'}>
-          <form method="POST">
-            {error && <p class="error">{error}</p>}
-            <label for="email-free" style="margin-top:12px">Work email</label>
-            <input type="email" id="email-free" name="email" placeholder="you@company.com" required autocomplete="email" />
-            <button type="submit" class="btn btn-primary">Create account →</button>
+        {freeOpen ? (
+          <form action="/api/signup-free" method="POST" id="free-signup-form">
+            {signupErrorMessage && <p class="error-msg">{signupErrorMessage}</p>}
+            <input type="email" name="email" placeholder="you@company.com" required autocomplete="email" style="width:100%;padding:10px 12px;border:1px solid var(--border-muted);border-radius:6px;font-size:14px;margin-bottom:8px;background:var(--surface);color:var(--text);box-sizing:border-box" />
+            <button type="submit" id="free-submit" class="btn" style="background:var(--surface);border:1px solid var(--border-muted);color:var(--text);font-weight:600">Get started free →</button>
           </form>
-        </div>
+        ) : (
+          <div class="coming-soon-pill"><span>Coming soon</span></div>
+        )}
       </div>
 
       <!-- Pro plan -->
@@ -232,10 +166,11 @@ if (Astro.request.method === 'POST') {
           <li>Batch validation (up to 50)</li>
           <li>Priority support</li>
         </ul>
-        <form method="POST" id="checkout-form">
-          <input type="hidden" name="action" value="checkout-pro" />
-          <button type="submit" class="btn btn-pro" id="checkout-btn">Upgrade to Pro →</button>
-        </form>
+        {proOpen ? (
+          <button id="pro-checkout-btn" class="btn btn-pro" style="background:var(--brand);color:#fff">Get started →</button>
+        ) : (
+          <div class="coming-soon-pill"><span>Coming soon</span></div>
+        )}
       </div>
 
       <!-- Enterprise plan -->
@@ -251,62 +186,40 @@ if (Astro.request.method === 'POST') {
           <li>99.9% SLA</li>
           <li>Dedicated support</li>
         </ul>
-        <form method="POST" id="checkout-enterprise-form">
-          <input type="hidden" name="action" value="checkout-enterprise" />
-          <button type="submit" class="btn btn-pro" id="checkout-enterprise-btn">Upgrade to Scale →</button>
-        </form>
+        <a href="mailto:support@taxvett.com" class="btn btn-enterprise">Contact us →</a>
       </div>
     </div>
 
     <p class="login-hint">Already have an account? <a href="/login">Sign in</a></p>
+    <p class="legal-hint">By signing up you agree to our <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.</p>
   </div>
-
-  <script>
-    // Override Pro form to POST JSON to /api/checkout instead of navigating
-    const checkoutForm = document.getElementById('checkout-form') as HTMLFormElement
-    const checkoutBtn = document.getElementById('checkout-btn') as HTMLButtonElement
-    checkoutForm?.addEventListener('submit', async (e) => {
-      e.preventDefault()
-      checkoutBtn.disabled = true
-      checkoutBtn.textContent = 'Redirecting…'
-      try {
-        const res = await fetch('/api/checkout', { method: 'POST' })
-        const data = await res.json() as { url?: string; error?: string }
-        if (!res.ok || !data.url) throw new Error(data.error ?? 'No URL returned')
-        window.location.href = data.url
-      } catch {
-        checkoutBtn.disabled = false
-        checkoutBtn.textContent = 'Upgrade to Pro →'
-        alert('Something went wrong. Please try again.')
-      }
-    })
-    // Enterprise checkout
-    const enterpriseForm = document.getElementById('checkout-enterprise-form') as HTMLFormElement
-    const enterpriseBtn = document.getElementById('checkout-enterprise-btn') as HTMLButtonElement
-    enterpriseForm?.addEventListener('submit', async (e) => {
-      e.preventDefault()
-      enterpriseBtn.disabled = true
-      enterpriseBtn.textContent = 'Redirecting…'
-      try {
-        const res = await fetch('/api/checkout-enterprise', { method: 'POST' })
-        const data = await res.json() as { url?: string; error?: string }
-        if (!res.ok || !data.url) throw new Error(data.error ?? 'No URL returned')
-        window.location.href = data.url
-      } catch {
-        enterpriseBtn.disabled = false
-        enterpriseBtn.textContent = 'Upgrade to Scale →'
-        alert('Something went wrong. Please try again.')
-      }
-    })
-
-    // Free plan CTA toggle
-    const freeCta = document.getElementById('free-cta') as HTMLButtonElement | null
-    const emailSection = document.getElementById('email-section') as HTMLDivElement | null
-    freeCta?.addEventListener('click', () => {
-      if (emailSection) emailSection.style.display = 'block'
-      if (freeCta) freeCta.style.display = 'none'
-      ;(document.getElementById('email-free') as HTMLInputElement | null)?.focus()
-    })
-  </script>
 </body>
 </html>
+
+<script>
+  // Pro checkout
+  const proBtn = document.getElementById('pro-checkout-btn')
+  if (proBtn) {
+    proBtn.addEventListener('click', async () => {
+      proBtn.setAttribute('disabled', 'true')
+      proBtn.textContent = 'Redirecting…'
+      try {
+        const res = await fetch('/api/checkout', { method: 'POST' })
+        const { url } = await res.json()
+        window.location.href = url
+      } catch {
+        proBtn.removeAttribute('disabled')
+        proBtn.textContent = 'Get started →'
+      }
+    })
+  }
+  // Free signup loading state
+  const freeForm = document.getElementById('free-signup-form')
+  const freeSubmit = document.getElementById('free-submit')
+  if (freeForm && freeSubmit) {
+    freeForm.addEventListener('submit', () => {
+      freeSubmit.setAttribute('disabled', 'true')
+      freeSubmit.textContent = 'Sending…'
+    })
+  }
+</script>

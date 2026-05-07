@@ -10,22 +10,36 @@ const { apiKeyId, email, plan } = Astro.locals
 
 // Handle key regeneration
 let newKeyRaw: string | null = null
+let regenError: string | null = null
 if (Astro.request.method === 'POST') {
   const data = await Astro.request.formData()
   if (data.get('action') === 'regenerate-key') {
-    const rawKey = await generateApiKey()
-    const newHash = await hashApiKey(rawKey, env.API_KEY_SALT)
-    await db.update(apiKeys)
-      .set({ keyHash: newHash })
-      .where(eq(apiKeys.id, apiKeyId))
-    newKeyRaw = rawKey
-    if (env.DISCORD_WEBHOOK_URL) {
-      fetch(env.DISCORD_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: `🔑 **API-nyckel regenererad** — konto \`${email ?? apiKeyId}\`` }),
-        signal: AbortSignal.timeout(5000),
-      }).catch(() => {})
+    try {
+      const rawKey = await generateApiKey()
+      const newHash = await hashApiKey(rawKey, env.API_KEY_SALT)
+      await db.update(apiKeys)
+        .set({ keyHash: newHash })
+        .where(eq(apiKeys.id, apiKeyId))
+      newKeyRaw = rawKey
+      if (env.DISCORD_WEBHOOK_URL) {
+        fetch(env.DISCORD_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: `🔑 **API-nyckel regenererad** — konto \`${email ?? apiKeyId}\`` }),
+          signal: AbortSignal.timeout(5000),
+        }).catch(() => {})
+      }
+    } catch (e) {
+      console.error('[key regen error]', e instanceof Error ? e.message : String(e))
+      regenError = 'Failed to regenerate API key. Please try again.'
+      if (env.DISCORD_WEBHOOK_URL) {
+        fetch(env.DISCORD_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: `⚠️ **Dashboard DB-fel** — key regeneration misslyckades för \`${email ?? apiKeyId}\`: ${e instanceof Error ? e.message : String(e)}` }),
+          signal: AbortSignal.timeout(5000),
+        }).catch(() => {})
+      }
     }
   } else if (data.get('action') === 'logout') {
     const { getRedis } = await import('../../lib/redis.ts')
@@ -40,6 +54,20 @@ if (Astro.request.method === 'POST') {
   }
 }
 
+// Show raw key on first login (new account) — one-time flash from Redis
+if (!newKeyRaw) {
+  const sessionId = Astro.cookies.get('session')?.value
+  if (sessionId) {
+    const { getRedis } = await import('../../lib/redis.ts')
+    const redis = getRedis(env.UPSTASH_REDIS_REST_URL, env.UPSTASH_REDIS_REST_TOKEN)
+    const flashKey = await redis.get<string>(`flash:key:${sessionId}`)
+    if (flashKey !== null) {
+      await redis.del(`flash:key:${sessionId}`)
+      newKeyRaw = flashKey
+    }
+  }
+}
+
 // Fetch stats
 let totalRequests = 0
 let monthlyRequests = 0
@@ -47,6 +75,7 @@ let byCountry: { country: string | null; count: number }[] = []
 let byDay: { date: string; count: number }[] = []
 let keyRow: { keyHash: string; createdAt: Date } | undefined = undefined
 let webhookList: typeof import('../../db/schema.ts').webhooks.$inferSelect[] = []
+let statsError = false
 
 try {
   const fourteenDaysAgo = sql`now() - interval '14 days'`
@@ -80,7 +109,16 @@ try {
   byDay = byDayResult
   keyRow = keyRowResult
 } catch (e) {
+  statsError = true
   console.error('[dashboard stats error]', e instanceof Error ? e.message : String(e))
+  if (env.DISCORD_WEBHOOK_URL) {
+    fetch(env.DISCORD_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: `⚠️ **Dashboard DB-fel** — stats-hämtning misslyckades för \`${email ?? apiKeyId}\`: ${e instanceof Error ? e.message : String(e)}` }),
+      signal: AbortSignal.timeout(5000),
+    }).catch(() => {})
+  }
 }
 
 try {
@@ -90,6 +128,8 @@ try {
 }
 const PLAN_MONTHLY_LIMITS: Record<string, number> = { free: 100, pro: 5000, enterprise: Infinity }
 const planLimit = PLAN_MONTHLY_LIMITS[plan] ?? 100
+const upgradedBanner = Astro.url.searchParams.get('upgraded') === '1'
+const dashboardError = Astro.url.searchParams.get('error')
 const quotaPct = planLimit === Infinity ? 0 : Math.min(100, Math.round((monthlyRequests / planLimit) * 100))
 
 // Build 14-day chart data (fill missing days with 0)
@@ -212,6 +252,13 @@ const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateStr
     input[type="url"] { flex: 1; padding: 8px 12px; border: 1px solid var(--border-muted); border-radius: 6px; font-size: 14px; background: var(--surface); color: var(--text); }
     .signout-btn { background: none; border: 1px solid var(--border); cursor: pointer; font-size: 13px; color: var(--text-muted); }
     .add-form { display: flex; gap: 8px; margin-top: 16px; }
+    .banner { padding: 12px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .banner-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+    .banner-error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+    .banner button { background: none; border: none; cursor: pointer; font-size: 18px; color: inherit; opacity: .7; padding: 0; line-height: 1; }
+    .inline-error { color: #ef4444; font-size: 13px; margin-top: 8px; }
+    .confirm-ui { display: none; gap: 8px; align-items: center; margin-top: 8px; font-size: 13px; color: var(--text-muted); }
+    .confirm-ui.visible { display: flex; }
   </style>
 </head>
 <body>
@@ -228,6 +275,22 @@ const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateStr
   </nav>
 
   <main>
+    {upgradedBanner && (
+      <div class="banner banner-success" id="upgraded-banner">
+        <span>You're now on Pro! 🎉 Your limits have been updated.</span>
+        <button onclick="document.getElementById('upgraded-banner').remove()" aria-label="Dismiss">×</button>
+      </div>
+    )}
+    {dashboardError && (
+      <div class="banner banner-error" id="error-banner">
+        <span>
+          {dashboardError === 'portal-failed' ? 'Could not open the billing portal. Please try again.' :
+           dashboardError === 'no-subscription' ? 'No active subscription found.' :
+           'Something went wrong. Please try again.'}
+        </span>
+        <button onclick="document.getElementById('error-banner').remove()" aria-label="Dismiss">×</button>
+      </div>
+    )}
     <!-- Quota cards -->
     <div class="grid" style="grid-template-columns: 1fr 2fr">
       <div class="card">
@@ -254,7 +317,7 @@ const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateStr
           <span>{email ?? '—'}</span>
           <span class="info-label">Plan</span>
           <span>
-            <span class={`plan-badge ${plan === 'pro' ? 'pro' : plan === 'enterprise' ? 'enterprise' : ''}`}>{plan}</span>
+            <span class={`plan-badge ${plan === 'pro' ? 'pro' : plan === 'enterprise' ? 'enterprise' : ''}`}>{plan === 'free' ? 'Free' : plan === 'pro' ? 'Pro' : 'Enterprise'}</span>
             <span style="font-size:13px;color:var(--text-muted);margin-left:8px">{plan === 'pro' ? '60 req/min · 5,000/month' : plan === 'enterprise' ? '300 req/min · unlimited' : '10 req/min · 100/month'}</span>
           </span>
           <span class="info-label">Key created</span>
@@ -262,6 +325,11 @@ const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateStr
         </div>
         {plan !== 'pro' && plan !== 'enterprise' && (
           <button id="upgrade-btn" class="btn btn-primary btn-sm" style="margin-top:16px">Upgrade to Pro →</button>
+        )}
+        {(plan === 'pro' || plan === 'enterprise') && (
+          <form action="/api/stripe-portal" method="POST" style="margin-top:16px">
+            <button type="submit" class="btn btn-sm" style="background:none;border:1px solid var(--border);color:var(--text-muted);font-size:13px">Manage billing →</button>
+          </form>
         )}
       </div>
     </div>
@@ -271,15 +339,19 @@ const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateStr
       <div class="section-header">
         <h2>Requests per day — last 14 days</h2>
       </div>
-      <div class="chart">
-        {chartDays.map((day) => (
-          <div class="bar-col">
-            <div class="bar-count">{day.count > 0 ? day.count : ''}</div>
-            <div class="bar" style={`height:${Math.round((day.count / maxCount) * 100)}%`}></div>
-            <div class="bar-label">{day.date.slice(5)}</div>
-          </div>
-        ))}
-      </div>
+      {statsError ? (
+        <p style="font-size:14px;color:var(--text-muted);padding:16px 0">Could not load usage statistics. Please refresh the page.</p>
+      ) : (
+        <div class="chart">
+          {chartDays.map((day) => (
+            <div class="bar-col">
+              <div class="bar-count">{day.count > 0 ? day.count : ''}</div>
+              <div class="bar" style={`height:${Math.round((day.count / maxCount) * 100)}%`}></div>
+              <div class="bar-label">{day.date.slice(5)}</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
 
     <!-- Top countries -->
@@ -309,6 +381,8 @@ const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateStr
         <h2>API key</h2>
       </div>
 
+      {regenError && <p class="inline-error">{regenError}</p>}
+
       {newKeyRaw && (
         <div class="new-key-box">
           <strong>⚠ Copy your new API key now — it won't be shown again.</strong>
@@ -317,11 +391,16 @@ const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateStr
       )}
 
       <div class="key-box">
-        <span class="key-masked">tv_{'•'.repeat(20)}{keyPrefix}…</span>
-        <form method="POST" onsubmit="return confirm('Regenerate API key? Your current key will stop working immediately.')">
+        <span class="key-masked">tv_{'\u2022'.repeat(20)}{keyPrefix}…</span>
+        <button type="button" id="regen-trigger" class="btn btn-danger btn-sm">Regenerate</button>
+      </div>
+      <div class="confirm-ui" id="regen-confirm">
+        <span>Your current key will stop working immediately.</span>
+        <form method="POST" style="display:inline">
           <input type="hidden" name="action" value="regenerate-key" />
-          <button type="submit" class="btn btn-danger btn-sm">Regenerate</button>
+          <button type="submit" class="btn btn-danger btn-sm">Confirm</button>
         </form>
+        <button type="button" id="regen-cancel" class="btn btn-sm" style="background:none;border:1px solid var(--border);color:var(--text-muted)">Cancel</button>
       </div>
     </div>
 
@@ -331,22 +410,43 @@ const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateStr
   </main>
 
   <script>
+    // Upgrade to Pro
     const upgradeBtn = document.getElementById('upgrade-btn')
+    const upgradeError = document.createElement('p')
+    upgradeError.style.cssText = 'color:#ef4444;font-size:13px;margin-top:8px'
     if (upgradeBtn) {
       upgradeBtn.addEventListener('click', async () => {
         upgradeBtn.setAttribute('disabled', 'true')
         upgradeBtn.textContent = 'Redirecting…'
         try {
           const res = await fetch('/api/checkout', { method: 'POST' })
-          const { url } = await res.json() as { url: string }
+          const { url } = await res.json()
           window.location.href = url
         } catch {
           upgradeBtn.removeAttribute('disabled')
           upgradeBtn.textContent = 'Upgrade to Pro →'
-          alert('Something went wrong. Please try again.')
+          upgradeError.textContent = 'Could not start checkout. Please try again.'
+          upgradeBtn.after(upgradeError)
         }
       })
     }
+    // Inline confirm for key regeneration
+    const regenTrigger = document.getElementById('regen-trigger')
+    const regenConfirm = document.getElementById('regen-confirm')
+    const regenCancel = document.getElementById('regen-cancel')
+    if (regenTrigger && regenConfirm && regenCancel) {
+      regenTrigger.addEventListener('click', () => {
+        regenConfirm.classList.add('visible')
+        regenTrigger.style.display = 'none'
+      })
+      regenCancel.addEventListener('click', () => {
+        regenConfirm.classList.remove('visible')
+        regenTrigger.style.display = ''
+      })
+    }
+    // Auto-dismiss upgraded banner
+    const upgradedBanner = document.getElementById('upgraded-banner')
+    if (upgradedBanner) setTimeout(() => upgradedBanner.remove(), 8000)
   </script>
 </body>
 </html>

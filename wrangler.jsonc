@@ -9,7 +9,13 @@
 	"observability": {
 		"enabled": true
 	},
+	"routes": [
+		{ "pattern": "taxvett.com/*", "zone_name": "taxvett.com" },
+		{ "pattern": "www.taxvett.com/*", "zone_name": "taxvett.com" }
+	],
 	"vars": {
-		"PUBLIC_API_BASE": "https://taxvett-api.granlov.workers.dev"
+		"PUBLIC_API_BASE": "https://api.taxvett.com",
+		"FREE_OPEN": "false",
+		"PRO_OPEN": "true"
 	}
 }
