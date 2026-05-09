@@ -1,11 +1,24 @@
 ---
 import { getDb } from '../../lib/db.ts'
 import { getRedis } from '../../lib/redis.ts'
-import { generateMagicToken, checkMagicLinkRateLimit } from '../../lib/auth.ts'
+import { generateMagicToken, checkMagicLinkRateLimit, getSessionApiKeyId } from '../../lib/auth.ts'
 import { sendMagicLinkEmail } from '../../lib/email.ts'
 import { eq } from 'drizzle-orm'
 import { apiKeys } from '../../db/schema.ts'
 import { env } from 'cloudflare:workers'
+
+const sessionId = Astro.cookies.get('session')?.value
+if (sessionId && env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN) {
+  try {
+    const redis = getRedis(env.UPSTASH_REDIS_REST_URL, env.UPSTASH_REDIS_REST_TOKEN)
+    const apiKeyId = await getSessionApiKeyId(redis, sessionId)
+    if (apiKeyId) {
+      return Astro.redirect('/dashboard', 302)
+    }
+  } catch {
+    // Redis nere — visa inloggningssidan som vanligt
+  }
+}
 
 let error = ''
 let success = false
