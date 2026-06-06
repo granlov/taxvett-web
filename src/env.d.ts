@@ -34,5 +34,6 @@ declare namespace App {
     apiKeyId: number
     email: string | null
     plan: string
+    cancelAt: Date | null
   }
 }
