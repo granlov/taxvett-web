@@ -10,6 +10,8 @@ export const apiKeys = pgTable('api_keys', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
   lastUsedAt: timestamp('last_used_at'),
   cancelAt: timestamp('cancel_at'),
+  currentPeriodEnd: timestamp('current_period_end'),
+  pendingPlan: text('pending_plan'),
 })
 
 export const usageLog = pgTable('usage_log', {

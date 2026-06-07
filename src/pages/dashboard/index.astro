@@ -6,7 +6,7 @@ import { usageLog, apiKeys, webhooks } from '../../db/schema.ts'
 import { env } from 'cloudflare:workers'
 
 const db = getDb(env.DATABASE_URL)
-const { apiKeyId, email, plan, cancelAt } = Astro.locals
+const { apiKeyId, email, plan, cancelAt, currentPeriodEnd, pendingPlan } = Astro.locals
 
 // Handle key regeneration
 let newKeyRaw: string | null = null
@@ -321,7 +321,14 @@ const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateStr
           <span>
             <span class={`plan-badge ${effectivePlan === 'pro' ? 'pro' : effectivePlan === 'enterprise' ? 'enterprise' : ''}`}>{effectivePlan === 'free' ? 'Free' : effectivePlan === 'pro' ? 'Pro' : 'Enterprise'}</span>
             <span style="font-size:13px;color:var(--text-muted);margin-left:8px">{effectivePlan === 'pro' ? '60 req/min · 5,000/month' : effectivePlan === 'enterprise' ? '300 req/min · unlimited' : '10 req/min · 100/month'}</span>
-            {cancelAt && <span style="font-size:13px;color:#f59e0b;margin-left:8px">· Cancels {cancelAt.toISOString().slice(0, 10)}</span>}
+            {cancelAt
+              ? <span style="font-size:13px;color:#f59e0b;margin-left:8px">· Cancels {cancelAt.toISOString().slice(0, 10)} → Free</span>
+              : pendingPlan
+              ? <span style="font-size:13px;color:#8b5cf6;margin-left:8px">· Changes to {pendingPlan === 'enterprise' ? 'Enterprise' : pendingPlan === 'pro' ? 'Pro' : pendingPlan} on {currentPeriodEnd?.toISOString().slice(0, 10) ?? '—'}</span>
+              : currentPeriodEnd
+              ? <span style="font-size:13px;color:var(--text-faint);margin-left:8px">· Renews {currentPeriodEnd.toISOString().slice(0, 10)}</span>
+              : null
+            }
           </span>
           <span class="info-label">Key created</span>
           <span>{createdAt}</span>

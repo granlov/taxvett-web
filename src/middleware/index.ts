@@ -34,7 +34,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     const db = getDb(env.DATABASE_URL)
     const key = await db.query.apiKeys.findFirst({
       where: eq(apiKeys.id, apiKeyId),
-      columns: { id: true, email: true, plan: true, isActive: true, cancelAt: true },
+      columns: { id: true, email: true, plan: true, isActive: true, cancelAt: true, currentPeriodEnd: true, pendingPlan: true },
     })
 
     if (!key || !key.isActive) {
@@ -46,6 +46,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
     context.locals.email = key.email
     context.locals.plan = key.plan
     context.locals.cancelAt = key.cancelAt ?? null
+    context.locals.currentPeriodEnd = key.currentPeriodEnd ?? null
+    context.locals.pendingPlan = key.pendingPlan ?? null
   } catch (e) {
     console.error('[middleware error]', e instanceof Error ? e.message : String(e), e instanceof Error ? e.stack : '')
     return new Response('Internal server error', { status: 500 })

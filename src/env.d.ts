@@ -35,5 +35,7 @@ declare namespace App {
     email: string | null
     plan: string
     cancelAt: Date | null
+    currentPeriodEnd: Date | null
+    pendingPlan: string | null
   }
 }
