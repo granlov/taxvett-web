@@ -1,7 +1,7 @@
 ---
 import { getDb } from '../../lib/db.ts'
 import { getRedis } from '../../lib/redis.ts'
-import { generateMagicToken, checkMagicLinkRateLimit, getSessionApiKeyId } from '../../lib/auth.ts'
+import { generateMagicToken, generateOtpCode, verifyOtpCode, checkMagicLinkRateLimit, getSessionApiKeyId, createSession } from '../../lib/auth.ts'
 import { sendMagicLinkEmail } from '../../lib/email.ts'
 import { eq, desc, sql } from 'drizzle-orm'
 import { apiKeys } from '../../db/schema.ts'
@@ -22,14 +22,50 @@ if (sessionId && env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN) {
 
 let error = ''
 let success = false
+let showCodeStep = false
+let pendingEmail = ''
+let codeError = ''
 
 if (Astro.request.method === 'POST') {
   const data = await Astro.request.formData()
   const email = String(data.get('email') ?? '').trim().toLowerCase()
+  const code = String(data.get('code') ?? '').trim()
 
   if (!email || !email.includes('@')) {
     error = 'Please enter a valid email address.'
+  } else if (code) {
+    // Step 2: verify OTP code
+    try {
+      const redis = getRedis(env.UPSTASH_REDIS_REST_URL, env.UPSTASH_REDIS_REST_TOKEN)
+      const apiKeyId = await verifyOtpCode(redis, email, code)
+      if (apiKeyId === null) {
+        codeError = 'Incorrect or expired code. Try again or click the link in your email.'
+        showCodeStep = true
+        pendingEmail = email
+      } else {
+        const sessionId = await createSession(redis, apiKeyId)
+        const firstKey = await redis.get<string>(`newkey:${apiKeyId}`)
+        if (firstKey !== null) {
+          await redis.del(`newkey:${apiKeyId}`)
+          await redis.set(`flash:key:${sessionId}`, firstKey, 5 * 60)
+        }
+        Astro.cookies.set('session', sessionId, {
+          path: '/',
+          httpOnly: true,
+          secure: true,
+          sameSite: 'lax',
+          maxAge: 7 * 24 * 60 * 60,
+        })
+        return Astro.redirect('/dashboard', 302)
+      }
+    } catch (e) {
+      console.error('[login OTP error]', e instanceof Error ? e.message : String(e))
+      codeError = 'Something went wrong. Please try again.'
+      showCodeStep = true
+      pendingEmail = email
+    }
   } else {
+    // Step 1: send email with magic link + OTP
     try {
       const db = getDb(env.DATABASE_URL)
       const redis = getRedis(
@@ -49,16 +85,22 @@ if (Astro.request.method === 'POST') {
 
         // Don't reveal whether the email exists — always show success
         if (key) {
-          const token = await generateMagicToken(redis, key.id)
+          const [token, otpCode] = await Promise.all([
+            generateMagicToken(redis, key.id),
+            generateOtpCode(redis, email, key.id),
+          ])
           const magicLink = `${Astro.url.origin}/login/callback?token=${token}`
           await sendMagicLinkEmail({
             to: email,
             magicLink,
+            otpCode,
             resendApiKey: env.RESEND_API_KEY,
           })
         }
 
         success = true
+        showCodeStep = true
+        pendingEmail = email
       }
     } catch (e) {
       console.error('[login POST error]', e instanceof Error ? e.message : String(e), e instanceof Error ? e.stack : '')
@@ -115,8 +157,10 @@ if (Astro.request.method === 'POST') {
     h1 { font-size: 22px; font-weight: 600; margin-bottom: 8px; }
     p { color: var(--text-muted); font-size: 14px; margin-bottom: 24px; }
     label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; }
-    input[type="email"] { width: 100%; padding: 10px 12px; border: 1px solid var(--border-muted); border-radius: 6px; font-size: 15px; outline: none; background: var(--surface); color: var(--text); }
-    input[type="email"]:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(14,165,233,.15); }
+    input[type="email"],
+    input[type="text"] { width: 100%; padding: 10px 12px; border: 1px solid var(--border-muted); border-radius: 6px; font-size: 15px; outline: none; background: var(--surface); color: var(--text); }
+    input[type="email"]:focus,
+    input[type="text"]:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(14,165,233,.15); }
     button { width: 100%; margin-top: 16px; padding: 11px; background: var(--brand); color: #fff; border: none; border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer; }
     button:hover { background: var(--brand-hover); }
     .error { color: #ef4444; font-size: 13px; margin-top: 10px; }
@@ -152,23 +196,47 @@ if (Astro.request.method === 'POST') {
         </div>
       </div>
     )}
-    <p>Enter the email you used to sign up. We'll send you a login link.</p>
+    <p>Enter the email you used to sign up. We'll send you a login code and link.</p>
 
-    {success ? (
+    {showCodeStep ? (
       <div>
-        <div class="success">
-          ✓ Check your inbox — we sent you a login link.
-        </div>
-        <div class="no-mail">
+        {success && (
+          <div class="success" style="margin-bottom:16px">
+            ✓ Check your inbox — we sent you a 6-digit code and a login link.
+          </div>
+        )}
+        <form method="POST" id="code-form">
+          <input type="hidden" name="email" value={pendingEmail} />
+          <label for="code">Enter your 6-digit code</label>
+          <input
+            type="text"
+            id="code"
+            name="code"
+            inputmode="numeric"
+            pattern="[0-9]{6}"
+            maxlength="6"
+            placeholder="123456"
+            required
+            autocomplete="one-time-code"
+            autofocus
+            style="letter-spacing:4px;font-size:22px;text-align:center;font-family:'IBM Plex Mono',Consolas,monospace"
+          />
+          {codeError && <p class="error">{codeError}</p>}
+          <button type="submit" id="code-submit-btn">Verify code</button>
+        </form>
+        <p style="margin-top:14px;font-size:13px;color:var(--text-muted);text-align:center">
+          Or wait for the link in your email.
+        </p>
+        <div class="no-mail" style="margin-top:12px">
           No email after a minute? Check your spam folder.{' '}
           {Astro.url.searchParams.get('welcome') === '1'
             ? <span>If you just paid and still can't log in, email <a href="mailto:support@taxvett.com">support@taxvett.com</a> with your payment confirmation — we'll sort it out.</span>
             : <span>Address not recognised? <a href="/signup">Create an account</a> or <a href="mailto:support@taxvett.com">contact support</a>.</span>
           }
         </div>
-        <form method="POST" id="resend-form" style="margin-top:14px">
-          <input type="hidden" name="email" id="resend-email" value="" />
-          <button type="button" id="resend-btn" class="resend-btn">Resend link</button>
+        <form method="POST" id="resend-form" style="margin-top:10px">
+          <input type="hidden" name="email" id="resend-email" value={pendingEmail} />
+          <button type="button" id="resend-btn" class="resend-btn">Resend code</button>
         </form>
       </div>
     ) : (
@@ -176,7 +244,7 @@ if (Astro.request.method === 'POST') {
         <label for="email">Email address</label>
         <input type="email" id="email" name="email" placeholder="you@company.com" required autocomplete="email" autofocus />
         {error && <p class="error">{error}</p>}
-        <button type="submit" id="submit-btn">Send login link</button>
+        <button type="submit" id="submit-btn">Send login code</button>
       </form>
     )}
     <p style="margin-top:20px;font-size:13px;text-align:center;color:#94a3b8">
@@ -196,39 +264,32 @@ if (Astro.request.method === 'POST') {
       })
     }
 
-    // Resend link: re-use the email entered before success
-    const resendBtn = document.getElementById('resend-btn')
-    const resendEmail = document.getElementById('resend-email')
-    const resendForm = document.getElementById('resend-form')
-    if (resendBtn && resendEmail && resendForm) {
-      // Restore email from sessionStorage set before submit
-      const storedEmail = sessionStorage.getItem('login_email')
-      if (storedEmail) resendEmail.value = storedEmail
-
-      resendBtn.addEventListener('click', async () => {
-        if (!resendEmail.value) return
-        resendBtn.setAttribute('disabled', 'true')
-        resendBtn.textContent = 'Sending…'
-        try {
-          const fd = new FormData()
-          fd.set('email', resendEmail.value)
-          await fetch('/login', { method: 'POST', body: fd })
-          resendBtn.textContent = 'Sent!'
-          setTimeout(() => {
-            resendBtn.removeAttribute('disabled')
-            resendBtn.textContent = 'Resend link'
-          }, 3000)
-        } catch {
-          resendBtn.removeAttribute('disabled')
-          resendBtn.textContent = 'Resend link'
+    // Auto-submit code form when 6 digits are entered
+    const codeInput = document.getElementById('code')
+    const codeForm = document.getElementById('code-form')
+    const codeSubmitBtn = document.getElementById('code-submit-btn')
+    if (codeInput && codeForm && codeSubmitBtn) {
+      codeInput.addEventListener('input', function () {
+        const val = codeInput.value.replace(/\D/g, '').slice(0, 6)
+        codeInput.value = val
+        if (val.length === 6) {
+          codeSubmitBtn.setAttribute('disabled', 'true')
+          codeSubmitBtn.textContent = 'Verifying…'
+          if (codeForm instanceof HTMLFormElement) codeForm.submit()
         }
+      })
+      codeForm.addEventListener('submit', function () {
+        codeSubmitBtn.setAttribute('disabled', 'true')
+        codeSubmitBtn.textContent = 'Verifying…'
       })
     }
 
-    // Store email before submit so resend can use it
-    if (form && emailInput) {
-      form.addEventListener('submit', function () {
-        sessionStorage.setItem('login_email', emailInput.value)
+    // Resend: submit the form (triggers Step 1 again, re-renders code step with fresh code)
+    const resendBtn = document.getElementById('resend-btn')
+    const resendForm = document.getElementById('resend-form')
+    if (resendBtn && resendForm) {
+      resendBtn.addEventListener('click', () => {
+        if (resendForm instanceof HTMLFormElement) resendForm.submit()
       })
     }
 

@@ -37,7 +37,15 @@ export async function sendMagicLinkEmail(opts: {
   to: string
   magicLink: string
   resendApiKey: string
+  otpCode?: string
 }): Promise<void> {
+  const otpSection = opts.otpCode ? `
+            <div style="margin:0 0 28px;padding:20px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;text-align:center">
+              <p style="color:#4a6278;margin:0 0 8px;font-size:13px">Or enter this code on the sign-in page</p>
+              <div style="font-family:'IBM Plex Mono',Consolas,monospace;font-size:36px;font-weight:700;color:#10233F;letter-spacing:6px">${opts.otpCode}</div>
+              <p style="color:#8fa8bc;margin:8px 0 0;font-size:12px">Valid for 10 minutes</p>
+            </div>` : ''
+
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -47,7 +55,7 @@ export async function sendMagicLinkEmail(opts: {
     body: JSON.stringify({
       from: 'TaxVett <noreply@taxvett.com>',
       to: opts.to,
-      subject: 'Your TaxVett login link',
+      subject: opts.otpCode ? `Your TaxVett login code: ${opts.otpCode}` : 'Your TaxVett login link',
       html: `
         <div style="font-family:'Manrope',Arial,sans-serif;max-width:480px;margin:0 auto;padding:0;background:#ffffff">
           <div style="background:#10233F;padding:24px 32px;border-radius:8px 8px 0 0">
@@ -55,7 +63,8 @@ export async function sendMagicLinkEmail(opts: {
           </div>
           <div style="padding:32px;border:1px solid #e2ecf5;border-top:none;border-radius:0 0 8px 8px">
             <h2 style="margin:0 0 8px;font-size:20px;font-weight:700;color:#10233F">Sign in to TaxVett</h2>
-            <p style="color:#4a6278;margin:0 0 28px;font-size:15px;line-height:1.5">Click the button below to sign in. The link expires in 15 minutes.</p>
+            <p style="color:#4a6278;margin:0 0 28px;font-size:15px;line-height:1.5">Click the button below to sign in, or enter the code on the sign-in page.</p>
+            ${otpSection}
             <a href="${opts.magicLink}" style="display:inline-block;background:#10A6E8;color:#ffffff;text-decoration:none;padding:13px 28px;border-radius:6px;font-weight:700;font-size:15px">Sign in to your account</a>
             <p style="color:#8fa8bc;font-size:12px;margin:32px 0 0;line-height:1.5">If you didn't request this, you can safely ignore this email.</p>
           </div>

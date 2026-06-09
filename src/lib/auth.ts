@@ -4,6 +4,8 @@ const MAGIC_TOKEN_TTL = 15 * 60      // 15 minutes
 const SESSION_TTL = 7 * 24 * 60 * 60 // 7 days
 const MAX_MAGIC_LINKS_PER_EMAIL = 3
 const MAGIC_LINK_RATE_WINDOW = 5 * 60 // 5 minutes
+const OTP_TTL = 10 * 60               // 10 minutes
+const MAX_OTP_ATTEMPTS = 3
 
 export type Redis = {
   get<T>(key: string): Promise<T | null>
@@ -49,4 +51,31 @@ export async function deleteSession(redis: Redis, sessionId: string): Promise<vo
 export async function checkMagicLinkRateLimit(redis: Redis, email: string): Promise<boolean> {
   const count = await redis.incr(`ratelimit:magic:${email}`, MAGIC_LINK_RATE_WINDOW)
   return count <= MAX_MAGIC_LINKS_PER_EMAIL
+}
+
+/** Generates a 6-digit OTP, stores it in Redis keyed by email, and returns the code. */
+export async function generateOtpCode(redis: Redis, email: string, apiKeyId: number): Promise<string> {
+  const array = new Uint32Array(1)
+  crypto.getRandomValues(array)
+  const code = String(100000 + (array[0] % 900000))
+  await redis.set(`otp:${email}`, { apiKeyId, code }, OTP_TTL)
+  return code
+}
+
+/** Verifies a submitted OTP code. Returns apiKeyId on success, null otherwise.
+ *  After MAX_OTP_ATTEMPTS failed attempts the code is invalidated. */
+export async function verifyOtpCode(redis: Redis, email: string, inputCode: string): Promise<number | null> {
+  const data = await redis.get<{ apiKeyId: number; code: string }>(`otp:${email}`)
+  if (!data) return null
+
+  const attempts = await redis.incr(`otp:attempts:${email}`, OTP_TTL)
+  if (attempts > MAX_OTP_ATTEMPTS) {
+    await redis.del(`otp:${email}`)
+    return null
+  }
+
+  if (inputCode.trim() !== data.code) return null
+
+  await redis.del(`otp:${email}`)
+  return data.apiKeyId
 }
