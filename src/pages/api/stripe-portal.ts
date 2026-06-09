@@ -6,7 +6,7 @@ import { getSessionApiKeyId } from '../../lib/auth.ts'
 import { eq } from 'drizzle-orm'
 import { apiKeys } from '../../db/schema.ts'
 
-export const POST: APIRoute = async ({ request, url, cookies }) => {
+export const POST: APIRoute = async ({ url, cookies }) => {
   const sessionId = cookies.get('session')?.value
   if (!sessionId) {
     return new Response(null, { status: 302, headers: { Location: '/login' } })
