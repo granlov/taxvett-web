@@ -136,8 +136,8 @@ const enterprisePriceInterval = enterprisePrice?.recurring?.interval ?? 'month'
         <div class="plan-price">$0 <span>/ month</span></div>
         <p class="plan-desc">Perfect for trying out the API and low-volume projects.</p>
         <ul class="plan-features">
-          <li>100 req/month</li>
-          <li>10 req/min rate limit</li>
+          <li>50 req/month</li>
+          <li>5 req/min rate limit</li>
           <li>Single validation endpoint</li>
           <li>30+ countries</li>
           <li>Dashboard &amp; API key management</li>
@@ -186,7 +186,7 @@ const enterprisePriceInterval = enterprisePrice?.recurring?.interval ?? 'month'
           <li>99.9% SLA</li>
           <li>Dedicated support</li>
         </ul>
-        <a href="mailto:support@taxvett.com" class="btn btn-enterprise">Contact us →</a>
+        <button id="scale-checkout-btn" class="btn btn-enterprise">Get started →</button>
       </div>
     </div>
 
@@ -198,21 +198,34 @@ const enterprisePriceInterval = enterprisePrice?.recurring?.interval ?? 'month'
 
 <script>
   // Pro checkout
-  const proBtn = document.getElementById('pro-checkout-btn')
-  if (proBtn) {
-    proBtn.addEventListener('click', async () => {
-      proBtn.setAttribute('disabled', 'true')
-      proBtn.textContent = 'Redirecting…'
+  function handleCheckoutBtn(btnId: string, endpoint: string, defaultLabel: string) {
+    const btn = document.getElementById(btnId) as HTMLButtonElement | null
+    if (!btn) return
+    const errorEl = document.createElement('p')
+    errorEl.style.cssText = 'color:#ef4444;font-size:13px;margin-top:8px'
+    btn.addEventListener('click', async () => {
+      btn.setAttribute('disabled', 'true')
+      btn.textContent = 'Redirecting…'
+      errorEl.textContent = ''
       try {
-        const res = await fetch('/api/checkout', { method: 'POST' })
-        const { url } = await res.json()
-        window.location.href = url
+        const res = await fetch(endpoint, { method: 'POST' })
+        const data = await res.json() as { url?: string; error?: string; redirectUrl?: string }
+        if (data.redirectUrl) {
+          window.location.href = data.redirectUrl
+          return
+        }
+        if (!res.ok || !data.url) throw new Error(data.error ?? 'no_url')
+        window.location.href = data.url
       } catch {
-        proBtn.removeAttribute('disabled')
-        proBtn.textContent = 'Get started →'
+        btn.removeAttribute('disabled')
+        btn.textContent = defaultLabel
+        errorEl.textContent = 'Could not start checkout. Please try again.'
+        btn.after(errorEl)
       }
     })
   }
+  handleCheckoutBtn('pro-checkout-btn', '/api/checkout', 'Get started →')
+  handleCheckoutBtn('scale-checkout-btn', '/api/checkout-enterprise', 'Get started →')
   // Free signup loading state
   const freeForm = document.getElementById('free-signup-form')
   const freeSubmit = document.getElementById('free-submit')

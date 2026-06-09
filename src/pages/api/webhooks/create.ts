@@ -21,6 +21,23 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   if (!url.startsWith('https://')) {
     return redirect('/dashboard?error=webhook-url-invalid')
   }
+  try {
+    const parsed = new URL(url)
+    const hostname = parsed.hostname.toLowerCase()
+    const isInternal =
+      hostname === 'localhost' ||
+      /^127\./.test(hostname) ||
+      /^10\./.test(hostname) ||
+      /^172\.(1[6-9]|2\d|3[01])\./.test(hostname) ||
+      /^192\.168\./.test(hostname) ||
+      /^169\.254\./.test(hostname) ||
+      hostname === '::1' ||
+      hostname.startsWith('fd') ||
+      hostname.endsWith('.local')
+    if (isInternal) return redirect('/dashboard?error=webhook-url-invalid')
+  } catch {
+    return redirect('/dashboard?error=webhook-url-invalid')
+  }
 
   // Limit: max 10 webhooks per key
   const db = getDb(env.DATABASE_URL)

@@ -428,10 +428,16 @@ const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateStr
       upgradeBtn.addEventListener('click', async () => {
         upgradeBtn.setAttribute('disabled', 'true')
         upgradeBtn.textContent = 'Redirecting…'
+        upgradeError.textContent = ''
         try {
           const res = await fetch('/api/checkout', { method: 'POST' })
-          const { url } = await res.json()
-          window.location.href = url
+          const data = await res.json() as { url?: string; error?: string; redirectUrl?: string }
+          if (data.redirectUrl) {
+            window.location.href = data.redirectUrl
+            return
+          }
+          if (!res.ok || !data.url) throw new Error(data.error ?? 'no_url')
+          window.location.href = data.url
         } catch {
           upgradeBtn.removeAttribute('disabled')
           upgradeBtn.textContent = 'Upgrade to Pro →'

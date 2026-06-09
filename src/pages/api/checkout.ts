@@ -10,6 +10,7 @@ export const POST: APIRoute = async ({ url, cookies }) => {
   const origin = url.origin
 
   let stripeCustomerId: string | null = null
+  let sessionEmail: string | null = null
   const sessionId = cookies.get('session')?.value
   if (sessionId) {
     try {
@@ -19,9 +20,10 @@ export const POST: APIRoute = async ({ url, cookies }) => {
         const db = getDb(env.DATABASE_URL)
         const key = await db.query.apiKeys.findFirst({
           where: eq(apiKeys.id, apiKeyId),
-          columns: { stripeCustomerId: true },
+          columns: { stripeCustomerId: true, email: true },
         })
         stripeCustomerId = key?.stripeCustomerId ?? null
+        sessionEmail = key?.email ?? null
       }
     } catch { /* ignore — proceed without customer ID */ }
   }
@@ -36,6 +38,8 @@ export const POST: APIRoute = async ({ url, cookies }) => {
   body.set('billing_address_collection', 'required')
   if (stripeCustomerId) {
     body.set('customer', stripeCustomerId)
+  } else if (sessionEmail) {
+    body.set('customer_email', sessionEmail)
   }
 
   const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
@@ -49,8 +53,15 @@ export const POST: APIRoute = async ({ url, cookies }) => {
   })
 
   if (!response.ok) {
-    const text = await response.text()
-    console.error('Stripe checkout error', response.status, text)
+    const errorBody = await response.json() as { error?: { code?: string; message?: string } }
+    const stripeCode = errorBody?.error?.code
+    if (response.status === 400 && stripeCode === 'resource_already_exists') {
+      return new Response(JSON.stringify({ error: 'already_subscribed', redirectUrl: '/dashboard' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    console.error('Stripe checkout error', response.status, errorBody)
     return new Response(JSON.stringify({ error: 'Failed to create checkout session' }), {
       status: 502,
       headers: { 'Content-Type': 'application/json' },
