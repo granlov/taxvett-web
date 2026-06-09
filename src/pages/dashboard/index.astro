@@ -279,7 +279,7 @@ const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateStr
   <main>
     {upgradedBanner && (
       <div class="banner banner-success" id="upgraded-banner">
-        <span>You're now on Pro! 🎉 Your limits have been updated.</span>
+        <span>You're now on Pro! 🎉 {plan === 'free' ? 'Updating your plan — refreshing in a moment…' : 'Your limits have been updated.'}</span>
         <button onclick="document.getElementById('upgraded-banner').remove()" aria-label="Dismiss">×</button>
       </div>
     )}
@@ -320,7 +320,7 @@ const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateStr
           <span class="info-label">Plan</span>
           <span>
             <span class={`plan-badge ${effectivePlan === 'pro' ? 'pro' : effectivePlan === 'enterprise' ? 'enterprise' : ''}`}>{effectivePlan === 'free' ? 'Free' : effectivePlan === 'pro' ? 'Pro' : 'Enterprise'}</span>
-            <span style="font-size:13px;color:var(--text-muted);margin-left:8px">{effectivePlan === 'pro' ? '60 req/min · 5,000/month' : effectivePlan === 'enterprise' ? '300 req/min · unlimited' : '10 req/min · 100/month'}</span>
+            <span style="font-size:13px;color:var(--text-muted);margin-left:8px">{effectivePlan === 'pro' ? '60 req/min · 5,000/month' : effectivePlan === 'enterprise' ? '300 req/min · unlimited' : '5 req/min · 50/month'}</span>
             {cancelAt
               ? <span style="font-size:13px;color:#f59e0b;margin-left:8px">· Cancels {cancelAt.toISOString().slice(0, 10)} → Free</span>
               : pendingPlan
@@ -460,9 +460,16 @@ const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateStr
         regenTrigger.style.display = ''
       })
     }
-    // Auto-dismiss upgraded banner
+    // Auto-dismiss or auto-reload upgraded banner
     const upgradedBanner = document.getElementById('upgraded-banner')
-    if (upgradedBanner) setTimeout(() => upgradedBanner.remove(), 8000)
+    if (upgradedBanner) {
+      const planIsPending = upgradedBanner.querySelector('span')?.textContent?.includes('refreshing')
+      if (planIsPending) {
+        setTimeout(() => { window.location.href = '/dashboard' }, 3000)
+      } else {
+        setTimeout(() => upgradedBanner.remove(), 8000)
+      }
+    }
   </script>
 </body>
 </html>
