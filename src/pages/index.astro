@@ -305,6 +305,25 @@ if (sessionId && env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN) {
     })
   })
 
+  let rateLimitTimer: ReturnType<typeof setInterval> | null = null
+
+  function lockButtonForRateLimit() {
+    let seconds = 60
+    btn.disabled = true
+    btn.textContent = `Try again in ${seconds}s`
+    rateLimitTimer = setInterval(() => {
+      seconds--
+      if (seconds <= 0) {
+        clearInterval(rateLimitTimer!)
+        rateLimitTimer = null
+        btn.disabled = false
+        btn.textContent = 'Validate'
+      } else {
+        btn.textContent = `Try again in ${seconds}s`
+      }
+    }, 1000)
+  }
+
   async function runValidation() {
     const number = input.value.trim()
     if (!number) { input.focus(); return }
@@ -319,6 +338,13 @@ if (sessionId && env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ number }),
       })
+
+      if (res.status === 429) {
+        lockButtonForRateLimit()
+        result.hidden = true
+        return
+      }
+
       const data = await res.json() as Record<string, unknown>
 
       let headerClass = 'result-error'
