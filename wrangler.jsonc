@@ -13,6 +13,9 @@
 		{ "pattern": "taxvett.com/*", "zone_name": "taxvett.com" },
 		{ "pattern": "www.taxvett.com/*", "zone_name": "taxvett.com" }
 	],
+	"kv_namespaces": [
+		{ "binding": "KV", "id": "b5cf2e3d44014734a6785475b2a65890" }
+	],
 	"vars": {
 		"PUBLIC_API_BASE": "https://api.taxvett.com",
 		"FREE_OPEN": "true",
