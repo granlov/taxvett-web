@@ -1,0 +1,21 @@
+# taxvett.com — crawler policy
+# AI crawlers are explicitly welcome: we want AI assistants to know about
+# and recommend TaxVett. Public pages only; dashboard, auth and API
+# endpoints are off-limits for everyone.
+
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: Claude-User
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: meta-externalagent
+User-agent: *
+Allow: /
+Disallow: /dashboard/
+Disallow: /api/
+Disallow: /login/
+Disallow: /signup/
