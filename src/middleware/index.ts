@@ -7,6 +7,12 @@ import { eq } from 'drizzle-orm'
 import { apiKeys } from '../db/schema.ts'
 
 export const onRequest = defineMiddleware(async (context, next) => {
+  if (context.url.protocol === 'http:') {
+    const httpsUrl = new URL(context.url.toString())
+    httpsUrl.protocol = 'https:'
+    return context.redirect(httpsUrl.toString(), 301)
+  }
+
   const { pathname } = context.url
 
   if (!pathname.startsWith('/dashboard')) {
@@ -53,5 +59,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return new Response('Internal server error', { status: 500 })
   }
 
-  return next()
+  const response = await next()
+  response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
+  response.headers.set('X-Content-Type-Options', 'nosniff')
+  return response
 })
