@@ -16,7 +16,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const { pathname } = context.url
 
   if (!pathname.startsWith('/dashboard')) {
-    return next()
+    return withSecurityHeaders(await next())
   }
 
   const sessionId = context.cookies.get('session')?.value
@@ -59,8 +59,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return new Response('Internal server error', { status: 500 })
   }
 
-  const response = await next()
+  return withSecurityHeaders(await next())
+})
+
+function withSecurityHeaders(response: Response): Response {
   response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
   response.headers.set('X-Content-Type-Options', 'nosniff')
   return response
-})
+}
