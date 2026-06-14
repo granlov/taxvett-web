@@ -57,11 +57,13 @@ Global API för validering av skattenummer (VAT, ABN, org-nummer m.m.) i 30+ lä
 - ~~Lägg till Pricing i navigationen~~
 - ~~Lägg till curl-kodexempel på startsidan~~
 
-**V2 — Innehåll**
+**V2 — Innehåll** ✅ Klar (2026-06-14)
 AI-generera och publicera 3 SEO-artiklar på dev.to:
-- *"EU VAT validation API compared — 2024"*
-- *"How to validate UK VAT numbers in Node.js"*
-- *"Australian ABN validation for SaaS developers"*
+- *"EU VAT validation APIs: a practical comparison"* → [articles/01-eu-vat-api-comparison.md](articles/01-eu-vat-api-comparison.md)
+- *"How to validate UK VAT numbers in Node.js (post-Brexit edition)"* → [articles/02-uk-vat-validation-nodejs.md](articles/02-uk-vat-validation-nodejs.md)
+- *"Australian ABN validation for SaaS developers"* → [articles/03-au-abn-validation-saas.md](articles/03-au-abn-validation-saas.md)
+
+Publiceringsordning: artikel 02 → 03 → 01 (3–5 dagars mellanrum, tisdag–torsdag 08–10 CET)
 
 **V3 — API-kataloger**
 Registrera taxvett i:
