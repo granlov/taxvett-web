@@ -13,15 +13,15 @@ Global API för validering av skattenummer (VAT, ABN, org-nummer m.m.) i 30+ lä
 
 ## Åtgärda innan lansering
 
-| Problem | Åtgärd |
-|---|---|
-| $ och € blandas på prissidan | Välj EUR genomgående |
-| Free-plan: 50 req/mån (för lite) | Höj till 200–500 req/mån |
-| "Priority support" / "Dedicated support" | Ta bort — ersätt med "Documentation" |
-| Prishopp €9 → €79 | Lägg till mellanplan ~€29/mån, 20 000 req |
-| Pricing saknas i navigationen | Lägg till "Pricing"-länk i menyn |
-| Inga kodexempel på startsidan | Lägg till curl-block direkt under hero |
-| "Built by a developer" — personreferens | Ta bort, skriv om till neutral text |
+| Problem | Åtgärd | Status |
+|---|---|---|
+| $ och € blandas på prissidan | Välj EUR genomgående | ✅ Klart |
+| Free-plan: 50 req/mån (för lite) | Höjd till 500 req/mån | ✅ Klart |
+| "Priority support" / "Dedicated support" | Ersatt med "Documentation" | ✅ Klart |
+| Prishopp €9 → €79 | TaxVett Business €29/mån, 20 000 req | ✅ Klart |
+| Pricing saknas i navigationen | "Pricing"-länk + `#pricing`-ankare | ✅ Klart |
+| Inga kodexempel på startsidan | curl-block med request + response tillagt | ✅ Klart |
+| "Built by a developer" — personreferens | Ersatt med neutral text | ✅ Klart |
 
 ---
 
@@ -50,12 +50,12 @@ Global API för validering av skattenummer (VAT, ABN, org-nummer m.m.) i 30+ lä
 
 ## Veckoplan — Månad 1 (sätt allt på plats)
 
-**V1 — Fixa sajten**
-- Rätta $ → EUR på prissidan
-- Höj Free-plan till 200–500 req/mån
-- Ta bort support-löften, lägg till "Documentation"
-- Lägg till Pricing i navigationen
-- Lägg till curl-kodexempel på startsidan
+**V1 — Fixa sajten** ✅ Klar (2026-06-14)
+- ~~Rätta $ → EUR på prissidan~~
+- ~~Höj Free-plan till 200–500 req/mån~~
+- ~~Ta bort support-löften, lägg till "Documentation"~~
+- ~~Lägg till Pricing i navigationen~~
+- ~~Lägg till curl-kodexempel på startsidan~~
 
 **V2 — Innehåll**
 AI-generera och publicera 3 SEO-artiklar på dev.to:
