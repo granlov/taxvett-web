@@ -19,6 +19,7 @@
 	"vars": {
 		"PUBLIC_API_BASE": "https://api.taxvett.com",
 		"FREE_OPEN": "true",
-		"PRO_OPEN": "true"
+		"PRO_OPEN": "true",
+		"BUSINESS_OPEN": "true"
 	}
 }

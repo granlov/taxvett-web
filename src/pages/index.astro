@@ -136,6 +136,16 @@ if (sessionId && env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN) {
     footer { text-align: center; padding: 32px 24px; font-size: 13px; color: var(--text-faint); border-top: 1px solid var(--border); }
     footer a { color: var(--text-faint); text-decoration: none; }
     footer a:hover { color: var(--brand); }
+
+    .code-example { background: var(--surface-alt); padding: 56px 24px; }
+    .code-example-inner { max-width: 1100px; margin: 0 auto; }
+    .code-example > .code-example-inner > h2 { font-size: 24px; font-weight: 800; text-align: center; margin-bottom: 32px; }
+    .code-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 700px) { .code-cols { grid-template-columns: 1fr; } }
+    .code-block { background: #0f172a; border-radius: 10px; overflow: hidden; }
+    .code-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #94a3b8; padding: 10px 16px 0; font-family: "IBM Plex Mono", monospace; }
+    .code-block pre { margin: 0; padding: 12px 16px 16px; overflow-x: auto; }
+    .code-block code { font-family: "IBM Plex Mono", monospace; font-size: 13px; color: #e2e8f0; line-height: 1.65; white-space: pre; }
   </style>
 </head>
 <body>
@@ -147,6 +157,7 @@ if (sessionId && env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN) {
   </a>
   <div class="nav-links">
     <a href="https://api.taxvett.com/docs" target="_blank" rel="noopener">API Docs</a>
+    <a href="/signup#pricing">Pricing</a>
     <a href="/login">Log in</a>
     <a href="/signup" class="btn-nav">Get started →</a>
   </div>
@@ -161,6 +172,32 @@ if (sessionId && env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN) {
       : <a href="/signup" class="btn-primary">Get started free</a>
     }
     <a href="https://api.taxvett.com/docs" target="_blank" rel="noopener" class="btn-secondary">View API docs</a>
+  </div>
+</section>
+
+<section class="code-example">
+  <div class="code-example-inner">
+    <h2>One request. Any tax number.</h2>
+    <div class="code-cols">
+      <div class="code-block">
+        <div class="code-label">Request</div>
+        <pre><code>curl -X POST https://api.taxvett.com/v1/validate \{'
+'}  -H "Authorization: Bearer tvk_your_api_key" \{'
+'}  -H "Content-Type: application/json" \{'
+'}  -d '{"number": "SE556703748501"}'</code></pre>
+      </div>
+      <div class="code-block">
+        <div class="code-label">Response</div>
+        <pre><code>{'{'}{'
+'}  "valid": true,{'
+'}  "number": "SE556703748501",{'
+'}  "country": "SE",{'
+'}  "name": "Spotify AB",{'
+'}  "address": "Regeringsgatan 19, 111 53 Stockholm",{'
+'}  "source": "eu_vies"{'
+'}{'}'}</code></pre>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -268,13 +305,13 @@ if (sessionId && env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN) {
       </div>
       <div class="trust-card">
         <div class="icon">🛠️</div>
-        <h3>Built by a developer, for developers</h3>
-        <p>TaxVett is an independently built and maintained project — no VC funding, no bloat. It exists because no single API reliably covered EU, UK, AU, NO, and SG tax numbers.</p>
+        <h3>Purpose-built, no bloat</h3>
+        <p>TaxVett exists because no single API reliably covered EU, UK, AU, NO, and SG tax numbers. Focused on doing one thing well.</p>
       </div>
       <div class="trust-card">
         <div class="icon">📬</div>
         <h3>Direct support</h3>
-        <p>Questions, issues, or enterprise enquiries: <a href="mailto:support@taxvett.com">support@taxvett.com</a>. No ticket system, no bots — you talk directly to the person who built it.</p>
+        <p>Questions, issues, or enterprise enquiries: <a href="mailto:support@taxvett.com">support@taxvett.com</a>. No ticket system, no bots — you talk directly to our team.</p>
       </div>
     </div>
   </div>
