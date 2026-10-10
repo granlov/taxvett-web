@@ -4,6 +4,7 @@ import { hashApiKey, generateApiKey } from '../../lib/crypto.ts'
 import { eq, desc, sql } from 'drizzle-orm'
 import { usageLog, apiKeys, webhooks } from '../../db/schema.ts'
 import { env } from 'cloudflare:workers'
+import { alertStalePlan } from '../../lib/alert.ts'
 
 const db = getDb(env.DATABASE_URL)
 const { apiKeyId, email, plan, cancelAt, currentPeriodEnd, pendingPlan } = Astro.locals
@@ -131,6 +132,11 @@ const upgradedBanner = Astro.url.searchParams.get('upgraded') === '1'
 // If webhook hasn't arrived yet, show pro optimistically when ?upgraded=1
 const effectivePlan = upgradedBanner && plan === 'free' ? 'pro' : plan
 const planLimit = PLAN_MONTHLY_LIMITS[effectivePlan] ?? 100
+// cancel_at in the past: the subscription has ended, even if the downgrade webhook hasn't landed yet
+const cancelAtPassed = cancelAt !== null && cancelAt.getTime() <= Date.now()
+if (cancelAtPassed && plan !== 'free') {
+  alertStalePlan(env.DISCORD_WEBHOOK_URL, apiKeyId, email, plan, cancelAt, Astro.locals.cfContext)
+}
 const dashboardError = Astro.url.searchParams.get('error')
 const quotaPct = planLimit === Infinity ? 0 : Math.min(100, Math.round((monthlyRequests / planLimit) * 100))
 
@@ -321,7 +327,9 @@ const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateStr
           <span>
             <span class={`plan-badge ${effectivePlan === 'pro' ? 'pro' : effectivePlan === 'enterprise' ? 'enterprise' : ''}`}>{effectivePlan === 'free' ? 'Free' : effectivePlan === 'pro' ? 'Pro' : 'Enterprise'}</span>
             <span style="font-size:13px;color:var(--text-muted);margin-left:8px">{effectivePlan === 'pro' ? '60 req/min · 5,000/month' : effectivePlan === 'enterprise' ? '300 req/min · unlimited' : '5 req/min · 50/month'}</span>
-            {cancelAt
+            {cancelAt && cancelAtPassed
+              ? <span style="font-size:13px;color:var(--text-muted);margin-left:8px">· Canceled {cancelAt.toISOString().slice(0, 10)}</span>
+              : cancelAt
               ? <span style="font-size:13px;color:#f59e0b;margin-left:8px">· Cancels {cancelAt.toISOString().slice(0, 10)} → Free</span>
               : pendingPlan
               ? <span style="font-size:13px;color:#8b5cf6;margin-left:8px">· Changes to {pendingPlan === 'enterprise' ? 'Enterprise' : pendingPlan === 'pro' ? 'Pro' : pendingPlan} on {currentPeriodEnd?.toISOString().slice(0, 10) ?? '—'}</span>
