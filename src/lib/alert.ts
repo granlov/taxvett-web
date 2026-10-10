@@ -22,3 +22,30 @@ export function alertAuthFailure(
   }).catch(() => {})
   ctx?.waitUntil(delivery)
 }
+
+// Betald plan efter passerat cancel_at = missad subscription.deleted-webhook.
+// Larma Discord, max en gång per nyckel per isolate per timme.
+const STALE_PLAN_INTERVAL_MS = 60 * 60_000
+const lastStalePlanAlertAt = new Map<number, number>()
+
+export function alertStalePlan(
+  webhookUrl: string | undefined,
+  keyId: number,
+  email: string | null,
+  plan: string,
+  cancelAt: Date,
+  ctx?: { waitUntil(promise: Promise<unknown>): void },
+): void {
+  if (!webhookUrl) return
+  const now = Date.now()
+  if (now - (lastStalePlanAlertAt.get(keyId) ?? 0) < STALE_PLAN_INTERVAL_MS) return
+  lastStalePlanAlertAt.set(keyId, now)
+  const who = email ?? `id ${keyId}`
+  const delivery = fetch(webhookUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content: `⚠️ **Dashboard** — \`${who}\` är fortfarande på ${plan} trots cancel_at ${cancelAt.toISOString().slice(0, 10)}. Missad webhook? Plan-sync-cron nedgraderar efter 1 dygn.` }),
+    signal: AbortSignal.timeout(5000),
+  }).catch(() => {})
+  ctx?.waitUntil(delivery)
+}
