@@ -5,6 +5,7 @@ import { eq, desc, sql } from 'drizzle-orm'
 import { usageLog, apiKeys, webhooks } from '../../db/schema.ts'
 import { env } from 'cloudflare:workers'
 import { alertStalePlan } from '../../lib/alert.ts'
+import { PLANS, isPlanId, planInfo, formatPlanLimits } from '../../lib/plans.ts'
 
 const db = getDb(env.DATABASE_URL)
 const { apiKeyId, email, plan, cancelAt, currentPeriodEnd, pendingPlan } = Astro.locals
@@ -127,11 +128,15 @@ try {
 } catch (e) {
   console.error('[dashboard webhooks error]', e instanceof Error ? e.message : String(e))
 }
-const PLAN_MONTHLY_LIMITS: Record<string, number> = { free: 100, pro: 5000, enterprise: Infinity }
 const upgradedBanner = Astro.url.searchParams.get('upgraded') === '1'
-// If webhook hasn't arrived yet, show pro optimistically when ?upgraded=1
-const effectivePlan = upgradedBanner && plan === 'free' ? 'pro' : plan
-const planLimit = PLAN_MONTHLY_LIMITS[effectivePlan] ?? 100
+// Checkout success URLs carry the purchased plan (?upgraded=1&plan=business); older links default to pro
+const upgradedParam = Astro.url.searchParams.get('plan')
+const upgradedPlan = isPlanId(upgradedParam) && upgradedParam !== 'free' ? upgradedParam : 'pro'
+// If webhook hasn't arrived yet, show the purchased plan optimistically when ?upgraded=1
+const effectivePlan = upgradedBanner && plan === 'free' ? upgradedPlan : plan
+const effectivePlanInfo = planInfo(effectivePlan)
+const isPaidPlan = planInfo(plan).id !== 'free'
+const planLimit = effectivePlanInfo.perMonth ?? Infinity
 // cancel_at in the past: the subscription has ended, even if the downgrade webhook hasn't landed yet
 const cancelAtPassed = cancelAt !== null && cancelAt.getTime() <= Date.now()
 if (cancelAtPassed && plan !== 'free') {
@@ -192,6 +197,7 @@ const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateStr
       .new-key-box code { color: #f1f5f9 !important; }
       .plan-badge { background: #0c4a6e !important; color: #7dd3fc !important; }
       .plan-badge.pro { background: #451a03 !important; color: #fcd34d !important; }
+      .plan-badge.business { background: #14532d !important; color: #86efac !important; }
       .plan-badge.enterprise { background: #3b0764 !important; color: #d8b4fe !important; }
     }
 
@@ -254,6 +260,7 @@ const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateStr
     .info-label { color: var(--text-faint); font-weight: 500; }
     .plan-badge { font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 20px; text-transform: uppercase; background: #e0f2fe; color: #0369a1; }
     .plan-badge.pro { background: #fef9c3; color: #854d0e; }
+    .plan-badge.business { background: #dcfce7; color: #166534; }
     .plan-badge.enterprise { background: #f3e8ff; color: #6b21a8; }
     form.inline { display: inline; }
     .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
@@ -285,7 +292,7 @@ const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateStr
   <main>
     {upgradedBanner && (
       <div class="banner banner-success" id="upgraded-banner">
-        <span>You're now on Pro! 🎉 {plan === 'free' ? 'Updating your plan — refreshing in a moment…' : 'Your limits have been updated.'}</span>
+        <span>You're now on {PLANS[upgradedPlan].label}! 🎉 {plan === 'free' ? 'Updating your plan — refreshing in a moment…' : 'Your limits have been updated.'}</span>
         <button onclick="document.getElementById('upgraded-banner').remove()" aria-label="Dismiss">×</button>
       </div>
     )}
@@ -325,14 +332,14 @@ const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateStr
           <span>{email ?? '—'}</span>
           <span class="info-label">Plan</span>
           <span>
-            <span class={`plan-badge ${effectivePlan === 'pro' ? 'pro' : effectivePlan === 'enterprise' ? 'enterprise' : ''}`}>{effectivePlan === 'free' ? 'Free' : effectivePlan === 'pro' ? 'Pro' : 'Enterprise'}</span>
-            <span style="font-size:13px;color:var(--text-muted);margin-left:8px">{effectivePlan === 'pro' ? '60 req/min · 5,000/month' : effectivePlan === 'enterprise' ? '300 req/min · unlimited' : '5 req/min · 50/month'}</span>
+            <span class={`plan-badge ${effectivePlanInfo.id === 'free' ? '' : effectivePlanInfo.id}`}>{effectivePlanInfo.label}</span>
+            <span style="font-size:13px;color:var(--text-muted);margin-left:8px">{formatPlanLimits(effectivePlanInfo)}</span>
             {cancelAt && cancelAtPassed
               ? <span style="font-size:13px;color:var(--text-muted);margin-left:8px">· Canceled {cancelAt.toISOString().slice(0, 10)}</span>
               : cancelAt
               ? <span style="font-size:13px;color:#f59e0b;margin-left:8px">· Cancels {cancelAt.toISOString().slice(0, 10)} → Free</span>
               : pendingPlan
-              ? <span style="font-size:13px;color:#8b5cf6;margin-left:8px">· Changes to {pendingPlan === 'enterprise' ? 'Enterprise' : pendingPlan === 'pro' ? 'Pro' : pendingPlan} on {currentPeriodEnd?.toISOString().slice(0, 10) ?? '—'}</span>
+              ? <span style="font-size:13px;color:#8b5cf6;margin-left:8px">· Changes to {isPlanId(pendingPlan) ? PLANS[pendingPlan].label : pendingPlan} on {currentPeriodEnd?.toISOString().slice(0, 10) ?? '—'}</span>
               : currentPeriodEnd
               ? <span style="font-size:13px;color:var(--text-faint);margin-left:8px">· Renews {currentPeriodEnd.toISOString().slice(0, 10)}</span>
               : null
@@ -341,10 +348,10 @@ const createdAt = keyRow?.createdAt ? new Date(keyRow.createdAt).toLocaleDateStr
           <span class="info-label">Key created</span>
           <span>{createdAt}</span>
         </div>
-        {effectivePlan !== 'pro' && effectivePlan !== 'enterprise' && (
+        {effectivePlanInfo.id === 'free' && (
           <button id="upgrade-btn" class="btn btn-primary btn-sm" style="margin-top:16px">Upgrade to Pro →</button>
         )}
-        {(plan === 'pro' || plan === 'enterprise') && (
+        {isPaidPlan && (
           <form action="/api/stripe-portal" method="POST" style="margin-top:16px">
             <button type="submit" class="btn btn-sm" style="background:none;border:1px solid var(--border);color:var(--text-muted);font-size:13px">Manage billing →</button>
           </form>

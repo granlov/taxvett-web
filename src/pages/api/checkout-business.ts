@@ -32,7 +32,7 @@ export const POST: APIRoute = async ({ url, cookies }) => {
   body.set('mode', 'subscription')
   body.set('line_items[0][price]', env.STRIPE_BUSINESS_PRICE_ID)
   body.set('line_items[0][quantity]', '1')
-  body.set('success_url', `${origin}/dashboard?upgraded=1`)
+  body.set('success_url', `${origin}/dashboard?upgraded=1&plan=business`)
   body.set('cancel_url', `${origin}/signup`)
   body.set('allow_promotion_codes', 'true')
   body.set('billing_address_collection', 'required')
