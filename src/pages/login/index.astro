@@ -5,6 +5,7 @@ import { generateMagicToken, generateOtpCode, verifyOtpCode, checkMagicLinkRateL
 import { sendMagicLinkEmail } from '../../lib/email.ts'
 import { eq, desc, sql } from 'drizzle-orm'
 import { apiKeys } from '../../db/schema.ts'
+import { alertAuthFailure } from '../../lib/alert.ts'
 import { env } from 'cloudflare:workers'
 
 const sessionId = Astro.cookies.get('session')?.value
@@ -15,8 +16,9 @@ if (sessionId && env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN) {
     if (apiKeyId) {
       return Astro.redirect('/dashboard', 302)
     }
-  } catch {
+  } catch (e) {
     // Redis nere — visa inloggningssidan som vanligt
+    alertAuthFailure(env.DISCORD_WEBHOOK_URL, 'Login (session)', e, Astro.locals.cfContext)
   }
 }
 
@@ -60,6 +62,7 @@ if (Astro.request.method === 'POST') {
       }
     } catch (e) {
       console.error('[login OTP error]', e instanceof Error ? e.message : String(e))
+      alertAuthFailure(env.DISCORD_WEBHOOK_URL, 'Login (OTP)', e, Astro.locals.cfContext)
       codeError = 'Something went wrong. Please try again.'
       showCodeStep = true
       pendingEmail = email
@@ -104,6 +107,7 @@ if (Astro.request.method === 'POST') {
       }
     } catch (e) {
       console.error('[login POST error]', e instanceof Error ? e.message : String(e), e instanceof Error ? e.stack : '')
+      alertAuthFailure(env.DISCORD_WEBHOOK_URL, 'Login', e, Astro.locals.cfContext)
       error = 'Something went wrong. Please try again.'
     }
   }
