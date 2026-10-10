@@ -39,5 +39,7 @@ declare namespace App {
     cancelAt: Date | null
     currentPeriodEnd: Date | null
     pendingPlan: string | null
+    // Satt av @astrojs/cloudflare i workerd; saknas t.ex. vid prerender
+    cfContext?: { waitUntil(promise: Promise<unknown>): void }
   }
 }

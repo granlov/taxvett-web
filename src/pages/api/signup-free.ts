@@ -5,10 +5,11 @@ import { getRedis } from '../../lib/redis.ts'
 import { hashApiKey, generateApiKey } from '../../lib/crypto.ts'
 import { generateMagicToken, checkMagicLinkRateLimit } from '../../lib/auth.ts'
 import { sendMagicLinkEmail } from '../../lib/email.ts'
+import { alertAuthFailure } from '../../lib/alert.ts'
 import { eq } from 'drizzle-orm'
 import { apiKeys } from '../../db/schema.ts'
 
-export const POST: APIRoute = async ({ request, url }) => {
+export const POST: APIRoute = async ({ request, url, locals }) => {
   if (env.FREE_OPEN !== 'true') {
     return new Response(null, { status: 302, headers: { Location: '/signup' } })
   }
@@ -64,6 +65,7 @@ export const POST: APIRoute = async ({ request, url }) => {
     return new Response(null, { status: 302, headers: { Location: '/signup/success' } })
   } catch (e) {
     console.error('[signup-free error]', e instanceof Error ? e.message : String(e))
+    alertAuthFailure(env.DISCORD_WEBHOOK_URL, 'Free-signup', e, locals.cfContext)
     return new Response(null, { status: 302, headers: { Location: '/signup?error=server' } })
   }
 }
