@@ -337,6 +337,15 @@ if (sessionId && env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN) {
     })
   })
 
+  function escapeHtml(value: unknown): string {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+  }
+
   let rateLimitTimer: ReturnType<typeof setInterval> | null = null
 
   function lockButtonForRateLimit(retryAfter: number) {
@@ -408,16 +417,16 @@ if (sessionId && env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN) {
       }
 
       const lines: string[] = []
-      if (data.number) lines.push(`<strong>Number:</strong> ${String(data.number)}`)
-      if (data.country) lines.push(`<strong>Country:</strong> ${String(data.country)}`)
-      if (data.company_name) lines.push(`<strong>Company:</strong> ${String(data.company_name)}`)
-      if (data.company_address) lines.push(`<strong>Address:</strong> ${String(data.company_address)}`)
-      if (data.message) lines.push(`<strong>Message:</strong> ${String(data.message)}`)
-      if (data.error) lines.push(`<strong>Error:</strong> ${String(data.error)}`)
+      if (data.number) lines.push(`<strong>Number:</strong> ${escapeHtml(data.number)}`)
+      if (data.country) lines.push(`<strong>Country:</strong> ${escapeHtml(data.country)}`)
+      if (data.company_name) lines.push(`<strong>Company:</strong> ${escapeHtml(data.company_name)}`)
+      if (data.company_address) lines.push(`<strong>Address:</strong> ${escapeHtml(data.company_address)}`)
+      if (data.message) lines.push(`<strong>Message:</strong> ${escapeHtml(data.message)}`)
+      if (data.error) lines.push(`<strong>Error:</strong> ${escapeHtml(data.error)}`)
 
       result.innerHTML = `
         <div class="result-header ${headerClass}">${headerText}</div>
-        <div class="result-body">${lines.join('<br/>') || JSON.stringify(data, null, 2)}</div>
+        <div class="result-body">${lines.join('<br/>') || escapeHtml(JSON.stringify(data, null, 2))}</div>
       `
     } catch {
       result.innerHTML = `
