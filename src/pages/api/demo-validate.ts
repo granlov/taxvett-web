@@ -50,8 +50,11 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   const data = await upstream.json()
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  const retryAfter = upstream.headers.get('Retry-After')
+  if (retryAfter) headers['Retry-After'] = retryAfter
   return new Response(JSON.stringify(data), {
     status: upstream.status,
-    headers: { 'Content-Type': 'application/json' },
+    headers,
   })
 }

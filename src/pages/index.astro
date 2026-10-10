@@ -339,8 +339,8 @@ if (sessionId && env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN) {
 
   let rateLimitTimer: ReturnType<typeof setInterval> | null = null
 
-  function lockButtonForRateLimit() {
-    let seconds = 60
+  function lockButtonForRateLimit(retryAfter: number) {
+    let seconds = retryAfter
     btn.disabled = true
     btn.textContent = `Try again in ${seconds}s`
     rateLimitTimer = setInterval(() => {
@@ -372,8 +372,24 @@ if (sessionId && env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN) {
       })
 
       if (res.status === 429) {
-        lockButtonForRateLimit()
-        result.hidden = true
+        const body = await res.json().catch(() => ({})) as { code?: string }
+        if (body.code === 'monthly_rate_limit_exceeded') {
+          result.innerHTML = `
+            <div class="result-header result-error">⚠ Demo limit reached</div>
+            <div class="result-body">The demo has hit its monthly limit. <a href="/signup">Get a free API key</a> to keep testing.</div>
+          `
+          result.hidden = false
+          btn.disabled = false
+          btn.textContent = 'Validate'
+          return
+        }
+        const retryAfter = Math.min(Math.max(Number(res.headers.get('Retry-After')) || 60, 1), 60)
+        result.innerHTML = `
+          <div class="result-header result-error">⚠ Demo is busy</div>
+          <div class="result-body">Too many demo requests right now. Please try again in a moment.</div>
+        `
+        result.hidden = false
+        lockButtonForRateLimit(retryAfter)
         return
       }
 
