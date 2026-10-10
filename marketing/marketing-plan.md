@@ -65,11 +65,11 @@ AI-generera och publicera 3 SEO-artiklar på dev.to:
 
 Publiceringsordning: artikel 02 → 03 → 01 (3–5 dagars mellanrum, tisdag–torsdag 08–10 CET)
 
-**V3 — API-kataloger**
-Registrera taxvett i:
-- RapidAPI
-- APIs.guru
-- Public APIs (GitHub-repo)
+**V3 — API-kataloger** ✅ Klar (2026-06-14)
+Registrerat taxvett i:
+- RapidAPI — kräver manuell webbregistrering på rapidapi.com (listing-info förberedd)
+- APIs.guru — issue inskickat: https://github.com/APIs-guru/openapi-directory/issues/2658
+- Public APIs (GitHub-repo) — PR inskickat: https://github.com/public-apis/public-apis/pull/6304
 
 **V4 — Google Ads**
 Kör tre annonsVarianter (A/B/C-test), 100 kr totalt:
