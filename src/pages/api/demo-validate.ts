@@ -23,8 +23,9 @@ async function checkDemoIpLimit(ip: string): Promise<{ code: string; retryAfter:
       return { code: 'rate_limit_exceeded', retryAfter: Math.ceil(((minute + 1) * 60_000 - now) / 1000) }
     }
     return null
-  } catch {
+  } catch (err) {
     // Redis unavailable — fail open; the demo key's own API limit still applies
+    console.error('demo IP rate limit check failed', err)
     return null
   }
 }
