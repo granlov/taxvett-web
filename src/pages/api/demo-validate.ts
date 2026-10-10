@@ -1,5 +1,33 @@
 import type { APIRoute } from 'astro'
 import { env } from 'cloudflare:workers'
+import { getRedis } from '../../lib/redis.ts'
+
+const DEMO_IP_LIMIT_PER_MINUTE = 10
+const DEMO_IP_LIMIT_PER_DAY = 50
+
+/** Per-visitor limit in front of the shared demo key. Returns null if allowed. */
+async function checkDemoIpLimit(ip: string): Promise<{ code: string; retryAfter: number } | null> {
+  const now = Date.now()
+  const minute = Math.floor(now / 60_000)
+  const day = Math.floor(now / 86_400_000)
+  try {
+    const redis = getRedis(env.UPSTASH_REDIS_REST_URL, env.UPSTASH_REDIS_REST_TOKEN)
+    const [perMinute, perDay] = await Promise.all([
+      redis.incr(`ratelimit:demo:${ip}:m:${minute}`, 60),
+      redis.incr(`ratelimit:demo:${ip}:d:${day}`, 86_400),
+    ])
+    if (perDay > DEMO_IP_LIMIT_PER_DAY) {
+      return { code: 'demo_daily_limit_exceeded', retryAfter: Math.ceil(((day + 1) * 86_400_000 - now) / 1000) }
+    }
+    if (perMinute > DEMO_IP_LIMIT_PER_MINUTE) {
+      return { code: 'rate_limit_exceeded', retryAfter: Math.ceil(((minute + 1) * 60_000 - now) / 1000) }
+    }
+    return null
+  } catch {
+    // Redis unavailable — fail open; the demo key's own API limit still applies
+    return null
+  }
+}
 
 export const POST: APIRoute = async ({ request }) => {
   const demoKey = env.DEMO_API_KEY
@@ -27,6 +55,17 @@ export const POST: APIRoute = async ({ request }) => {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     })
+  }
+
+  const ip = request.headers.get('CF-Connecting-IP')
+  if (ip) {
+    const limited = await checkDemoIpLimit(ip)
+    if (limited) {
+      return new Response(JSON.stringify({ error: 'Rate limit exceeded', code: limited.code }), {
+        status: 429,
+        headers: { 'Content-Type': 'application/json', 'Retry-After': String(limited.retryAfter) },
+      })
+    }
   }
 
   const apiBase = env.PUBLIC_API_BASE ?? 'https://api.taxvett.com'

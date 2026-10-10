@@ -382,10 +382,10 @@ if (sessionId && env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN) {
 
       if (res.status === 429) {
         const body = await res.json().catch(() => ({})) as { code?: string }
-        if (body.code === 'monthly_rate_limit_exceeded') {
+        if (body.code === 'monthly_rate_limit_exceeded' || body.code === 'demo_daily_limit_exceeded') {
           result.innerHTML = `
             <div class="result-header result-error">⚠ Demo limit reached</div>
-            <div class="result-body">The demo has hit its monthly limit. <a href="/signup">Get a free API key</a> to keep testing.</div>
+            <div class="result-body">You've reached the demo limit. <a href="/signup">Get a free API key</a> to keep testing.</div>
           `
           result.hidden = false
           btn.disabled = false
