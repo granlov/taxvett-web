@@ -30,7 +30,7 @@ async function checkDemoIpLimit(ip: string): Promise<{ code: string; retryAfter:
   }
 }
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, clientAddress }) => {
   const demoKey = env.DEMO_API_KEY
 
   if (!demoKey) {
@@ -58,8 +58,12 @@ export const POST: APIRoute = async ({ request }) => {
     })
   }
 
-  const ip = request.headers.get('CF-Connecting-IP')
-  if (ip) {
+  // The Cloudflare adapter sets clientAddress from cf-connecting-ip; reading the header directly did not work in production
+  let ip: string | undefined
+  try { ip = clientAddress } catch { /* not available */ }
+  if (!ip) {
+    console.warn('demo IP rate limit skipped: no client address')
+  } else {
     const limited = await checkDemoIpLimit(ip)
     if (limited) {
       return new Response(JSON.stringify({ error: 'Rate limit exceeded', code: limited.code }), {
