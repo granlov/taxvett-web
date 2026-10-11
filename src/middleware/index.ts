@@ -13,6 +13,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return context.redirect(httpsUrl.toString(), 301)
   }
 
+  // Canonical host: www.taxvett.com served a duplicate copy of the site
+  if (context.url.hostname === 'www.taxvett.com') {
+    const apexUrl = new URL(context.url.toString())
+    apexUrl.hostname = 'taxvett.com'
+    apexUrl.protocol = 'https:'
+    return context.redirect(apexUrl.toString(), 301)
+  }
+
   const { pathname } = context.url
 
   if (!pathname.startsWith('/dashboard')) {
