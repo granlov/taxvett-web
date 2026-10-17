@@ -1,0 +1,10 @@
+# TaxVett
+
+> TaxVett is a REST API that validates tax numbers in one call: EU VAT for all 27 member states (live VIES lookup), Australian ABN (live ABR), Norwegian organisation numbers (live Brønnøysundregisteret), and UK VAT and Singapore GST/UEN (format and checksum). It returns validity plus the registered company name and address where the registry provides them. Typical use: checking B2B customers' VAT numbers at checkout or on invoices (EU reverse charge).
+
+- Free plan: 500 requests/month, no credit card. Paid plans from €9/month.
+- Full API reference for LLMs: https://api.taxvett.com/llms.txt
+- OpenAPI: https://api.taxvett.com/openapi.json
+- Interactive docs: https://api.taxvett.com/docs
+- Sign up: https://taxvett.com/signup
+- Pricing: https://taxvett.com/#pricing
