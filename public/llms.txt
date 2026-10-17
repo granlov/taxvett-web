@@ -5,6 +5,7 @@
 - Free plan: 500 requests/month, no credit card. Paid plans from €9/month.
 - Full API reference for LLMs: https://api.taxvett.com/llms.txt
 - OpenAPI: https://api.taxvett.com/openapi.json
+- SDKs: `npm install taxvett` (Node.js/TypeScript), `pip install taxvett` (Python)
 - Interactive docs: https://api.taxvett.com/docs
 - Sign up: https://taxvett.com/signup
 - Pricing: https://taxvett.com/#pricing
