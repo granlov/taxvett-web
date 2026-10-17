@@ -170,13 +170,12 @@ const enterprisePriceInterval = enterprisePrice?.recurring?.interval ?? 'month'
         <div class="plan-badge pro">Professional</div>
         <div class="plan-name">Pro</div>
         <div class="plan-price">{priceAmount} <span>/ {priceInterval}</span></div>
-        <p class="plan-desc">For production workloads that need higher throughput and SLA.</p>
+        <p class="plan-desc">For production workloads that need higher throughput.</p>
         <p class="plan-from">Everything in Developer, plus:</p>
         <ul class="plan-features">
           <li>5 000 req/month</li>
           <li>60 req/min rate limit</li>
           <li>Batch validation (up to 50)</li>
-          <li>Documentation</li>
         </ul>
         {proOpen ? (
           <button id="pro-checkout-btn" class="btn btn-pro" style="background:var(--brand);color:#fff">Get started →</button>
@@ -196,7 +195,6 @@ const enterprisePriceInterval = enterprisePrice?.recurring?.interval ?? 'month'
           <li>20 000 req/month</li>
           <li>120 req/min rate limit</li>
           <li>Batch validation (up to 50)</li>
-          <li>Documentation</li>
         </ul>
         {businessOpen ? (
           <button id="business-checkout-btn" class="btn" style="background:var(--brand);color:#fff">Get started →</button>
@@ -210,13 +208,12 @@ const enterprisePriceInterval = enterprisePrice?.recurring?.interval ?? 'month'
         <div class="plan-badge enterprise">Large Enterprise</div>
         <div class="plan-name">Scale</div>
         <div class="plan-price">{enterprisePriceAmount} <span>/ {enterprisePriceInterval}</span></div>
-        <p class="plan-desc">Maximum throughput, guaranteed uptime, and dedicated support for demanding integrations.</p>
+        <p class="plan-desc">Maximum throughput and an uptime SLA for demanding integrations.</p>
         <p class="plan-from">Everything in Pro, plus:</p>
         <ul class="plan-features">
           <li>Unlimited req/month</li>
           <li>300 req/min rate limit</li>
           <li>99.9% SLA</li>
-          <li>Documentation</li>
         </ul>
         <button id="scale-checkout-btn" class="btn btn-enterprise">Get started →</button>
       </div>
