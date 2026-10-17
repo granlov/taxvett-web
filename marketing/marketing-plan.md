@@ -3,6 +3,25 @@
 
 ---
 
+## Tidsram — 3 månader i taget
+
+Planen gäller i perioder om 3 månader. Vid varje utvärdering: kör `taxvett-api/bin/stats.sh`.
+
+| Period | Utvärdering | Beslut |
+|---|---|---|
+| 2026-10-17 → 2027-01-17 | 2027-01-17 | MRR < €30 → hobbyläge (bara drift, inga nya features eller kanaler). MRR ≥ €30 → ny 3-månadersperiod med det som fungerade. |
+
+**Utgångsläge 2026-10-17:** 8 konton, 1 betalande (MRR €9), ~1 riktigt externt besök/30 d, 0 kund-API-anrop senaste 7 d.
+
+**Fokus perioden:**
+1. Synas för AI-assistenter: släpp in AI-crawlers i Cloudflare (robots.txt välkomnar dem men GPTBot/ClaudeBot fick 403), llms.txt.
+2. Google Search Console + Bing Webmaster Tools (sitemap).
+3. Publicera SDK:erna: `taxvett` på npm och PyPI.
+
+**Avfört efter second opinion (2026-10-17):** landningssidor med kontrollverktyg per land (myndigheternas gratisverktyg rankar först, och de som söker är bokförare, inte API-köpare). Fler API-kataloger ger inget. Google Ads väntar tills sajten konverterar.
+
+---
+
 ## Produkt
 
 Global API för validering av skattenummer (VAT, ABN, org-nummer m.m.) i 30+ länder.  
